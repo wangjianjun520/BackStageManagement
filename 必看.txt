@@ -1,43 +1,1579 @@
 
-������Ƶ��Ϊ�����֣�һ������vue�Ļ���֪ʶ�Ľ��⣬��һ��������Ŀʵս�Ľ��⣬����ио��Լ�vue����֪ʶ���յĲ����Ļ�������ֱ������ʵ����Ŀ����ѧϰ��
+本套视频分为两部分，一部分是vue的基础知识的讲解，另一部分是项目实战的讲解，如果有感觉自己vue基础知识掌握的不错的话，可以直接下载实现项目进行学习。
 
-�ÿγ̿���ֱ�ӽ���ʵս��Ŀ��ѧϰ,��ʡѧϰʱ�䡣
+该课程可以直接进入实战项目的学习,节省学习时间。
 
-�ӿ��ĵ����ʵ�ַ��http://129.226.76.172:5325/readme.html   
+接口文档访问地址：http://129.226.76.172:5325/readme.html   
 
-������Ŀ���ʵ�ַ��http://129.226.76.172:5325
+线上项目访问地址：http://129.226.76.172:5325
 
-�����û�����admin    ���룺123456
-
-
-�ر���ʾ������ʱ�벻Ҫɾ���ͽ���admin�˻������ɾ�����߽������˻����ᵼ�µ�¼���ɹ���Ӱ�����ѧϰ��������ֵ�¼���ˣ�����ϵ�Ҵ���������ԭ���ǲ��ܼ�ʱ�����ģ����л��ͷ���Ҳ�Ҫ�����ú�ɾ��admin�˻�������Ӱ��ѧϰ��
+测试用户名：admin    密码：123456
 
 
-���γ�Ĭ�ϲ��ṩ��̨����
+特别提示：测试时请不要删除和禁用admin账户，如果删除或者禁用了账户，会导致登录不成功，影响测试学习，如果发现登录不了，请联系我处理（因工作原因是不能及时处理的，所有还劳烦大家不要随便禁用和删除admin账户，以免影响学习）
 
-��������ֽӿڲ������ˣ�����ϵqq:532526447��
+
+本课程默认不提供后台代码
+
+（如果发现接口不能用了，请联系qq:532526447）
 
 **************************************************************************
 
-����������������Ļ�
+若后续有以下需求的话
 
-С������  �� ����ɼ�+���ݷ���+pc���ƶ���չʾ �� ��վ��վ ����̨�
+小程序定制  、 爬虫采集+数据分析+pc端移动端展示 、 网站建站 、后台搭建
 
-��������Ҫ�κ���Ƶ�������顢ѯ����ѧ���̣�
+（或者需要任何视频、电子书、询问求学历程）
 
-����ϵqq: 532526447 
+请联系qq: 532526447 
 
 (
-���ǵ����ɵİ����У�
-1������˾��������꣩����ͨƽ̨��Ʒʵʩ���
-2���������ʹ���С����΢�̳ǿ���
-3����վ�Զ���ע����
-4������������Ϸ�����������
-�ȵ�
+我们的做成的案例有：
+1、（公司：龙翔奥申）速卖通平台商品实施监测
+2、（田阳鲜果）小程序微商城开发
+3、网站自动下注软件
+4、各类棋牌游戏服务器环境搭建
+等等
 )
-����ѧ���Ŷӣ����ù�˾���ַ��ã��۸�ʵ�ݣ���
+【大学生团队，不用公司各种费用，价格实惠！】
 
 **************************************************************************
+
+import React, {PureComponent, Fragment} from 'react';
+import {
+  TreeSelect,
+  InputNumber,
+  Row,
+  Col,
+  Card,
+  Tabs,
+  Form,
+  AutoComplete,
+  Modal,
+  Table,
+  Pagination,
+  Tag,
+  Popconfirm,
+  Select,
+  Button,
+  DatePicker,
+  Input,
+  Divider,
+  Icon,
+} from 'antd';
+
+const confirm = Modal.confirm;
+
+import {stringify} from 'qs';
+import PageHeaderLayout from '../../../layouts/PageHeaderLayout';
+import './default.less';
+import {Menu} from "antd/lib/index";
+import {connect} from 'dva';
+import styles from '../../../common.less';
+import {message} from 'antd/lib/index';
+import moment from 'moment';
+import {parse} from "qs";
+import 'moment/locale/zh-cn';
+import {filterColums} from "../../../utils/tableDiy";
+import ChooseOnCol from '../../../components/TableDiy/ChooseOnCol'
+import zgtzptStyle from '../../../layouts/zgtzptStyle.less'
+
+
+import {fixedNum6, fixedNumber,fixedNum} from "../../../utils/utils";
+import fundTradeStyle from "../EtfTrade/fundTrade.less";
+import {bondInfoOne} from "../EtfTrade/ConfigInfo";
+import {bondInfoTwo} from "../EtfTrade/ConfigInfo";
+import {bondInfoThree} from "../EtfTrade/ConfigInfo";
+import GenerateInfo from "../EtfTrade/GenerateInfo";
+import BondTrade from "../EtfTrade/bondTrade.less";
+import { fail } from 'assert';
+
+import { ProductGroupSepC } from '../../../comps';
+import PropTypes from 'prop-types';
+
+
+const TabPane = Tabs.TabPane;
+const {TextArea} = Input;
+moment.locale('zh-cn');
+const FormItem = Form.Item;
+@connect(({businessEtfTrade, user}) => ({
+  businessEtfTrade,
+  user
+}))
+@Form.create()
+export default class EtfTrade extends PureComponent {
+
+  state = {
+    timeOutGap: 500,
+    cpCode: undefined,
+    fundId: undefined,
+    tradingcode: undefined,
+    exchangecode: undefined,
+    page:1,
+    pageSize:5,
+    showModal:false,
+    newValue:[]
+  }
+
+  //页面初始函数
+  componentWillMount = () => {
+    const {dispatch} = this.props;
+    const {user: {currentUser}} = this.props
+    this.props.dispatch({
+      type: 'businessEtfTrade/save',
+      payload: {
+        productTree:[],
+        fundData:{},
+        zqCode:[],
+        positionData:{},
+        oneFndData:{},
+        cfgData:[]
+      }
+    });
+    this.props.dispatch({
+      type: 'businessEtfTrade/queryProduct',
+      payload: {userId: currentUser.userId}
+    })
+    this.props.dispatch({
+      type: 'businessEtfTrade/queryTradingcode',
+
+    })
+    this.props.dispatch({
+      type: 'businessEtfTrade/queryCfg',
+      payload: {page: '1',pageSize:"5",userId:currentUser.userId}
+
+    })
+
+
+  }
+
+  groupOnChange = (value) => {
+    if (value) {
+      let newValue = value?value.key:value
+
+      this.setState({
+        fundId: newValue,
+        tradingcode: undefined,
+        exchangecode: undefined
+      })
+      this.props.form.resetFields(['zqdm', 'jysc']);
+      this.props.dispatch({
+        type: 'businessEtfTrade/queryFund',
+        payload: {
+          nodeId: newValue,
+          code: 'kk',
+        },
+      });
+    }
+
+  }
+
+  etfjbxx = () => {
+    const {businessEtfTrade: {oneFndData},} = this.props;
+
+    const oneProps = {
+      data: oneFndData||{},
+      infoList: bondInfoOne,
+      marginLeft: '10px',
+    };
+
+
+    return (
+      <div className={fundTradeStyle.divLayout}>
+
+        {/* 第一块信息 */}
+        <div className={fundTradeStyle.oneInfo}>
+          <GenerateInfo {...oneProps} />
+        </div>
+
+
+      </div>
+    )
+
+
+  }
+
+  etfzjky = () => {
+
+    const {businessEtfTrade: {fundData},} = this.props;
+
+    const oneProps = {
+      data: fundData||{},
+      infoList: bondInfoTwo,
+      marginLeft: '10px',
+    };
+    console.log("fundData======", fundData)
+
+    return (
+      <div className={fundTradeStyle.divLayout}>
+
+        {/* 第一块信息 */}
+        <div className={fundTradeStyle.oneInfo}>
+          <GenerateInfo {...oneProps} />
+        </div>
+
+
+      </div>
+    )
+  }
+
+  etfCcky = () => {
+    const {businessEtfTrade: {positionData},} = this.props;
+    const oneProps = {
+      data: positionData||{},
+      infoList: bondInfoThree,
+      marginLeft: '10px',
+    };
+
+
+    return (
+      <div className={fundTradeStyle.divLayout}>
+
+        {/* 第一块信息 */}
+        <div className={fundTradeStyle.oneInfo}>
+          <GenerateInfo {...oneProps} />
+        </div>
+
+
+      </div>
+    )
+  }
+
+  etfSscfg = () => {
+    const {businessEtfTrade: {cpCode, productTree, zqCode,cfgData,total}} = this.props;
+
+    const columns = [
+      {
+        title: '证券代码',
+        dataIndex: 'id.mtradingcode',
+        key: 'mtradingcode',
+      },
+      {
+        title: '证券简称',
+        dataIndex: 'msecuabbr',
+        key: 'msecuabbr',
+      },
+      {
+        title: '数量',
+        dataIndex: 'componentnum',
+        key: 'componentnum',
+        className:'column-right',
+        render: (text, record, index) => {
+          if (text) {
+            return fixedNum6(text, 2)
+          }
+
+        }
+      },
+      {
+        title: '持仓数量',
+        dataIndex: 'ccsl',
+        key: 'ccsl',
+        className:'column-right',
+        render: (text, record, index) => {
+          if (text) {
+            return fixedNum6(text, 2)
+          }
+
+        }
+      },
+      {
+        title: '单位',
+        dataIndex: 'unit',
+        key: 'unit',
+        render: (text, record, index) => {
+          if (text=='1') {
+           return '手'
+          }else if (text=='2'){
+            return '克'
+          }else if (text=='3'){
+            return '股'
+          }else if (text=='9'){
+            return '未批露'
+          }
+        }
+      },
+      {
+        title: '是否现金替代',
+        dataIndex: 'iscashsubstitute',
+        key: 'iscashsubstitute',
+        render: (text, record, index) => {
+          if (text=='1') {
+            return '允许'
+          }else if (text=='2'){
+            return '必须'
+          }else if (text=='3'){
+            return '退补'
+          }else if (text=='0'){
+            return '禁止'
+          }
+        }
+      },
+      {
+        title: '现金替代溢价比例',
+        dataIndex: 'cashsubstituterate',
+        key: 'cashsubstituterate',
+        className:'column-right',
+        render: (text, record, index) => {
+          if (text) {
+            return fixedNum(text, 2)
+          }
+
+        }
+      },
+      {
+        title: '固定替代金额',
+        dataIndex: 'cashsubstitute',
+        key: 'cashsubstitute',
+        className:'column-right',
+        render: (text, record, index) => {
+
+            return fixedNum(text,2)
+
+
+        }
+      },
+      {
+        title: '申购替代金额',
+        dataIndex: 'subreplace',
+        key: 'subreplace',
+        className:'column-right',
+        render: (text, record, index) => {
+
+            return fixedNum(text)
+
+        }
+      },
+      {
+        title: '赎回替代金额',
+        dataIndex: 'redreplace',
+        key: 'redreplace',
+        className:'column-right',
+        render: (text, record, index) => {
+
+            return fixedNum(text)
+
+        }
+      },
+
+    ]
+
+    return (
+      <div>      <Table columns={columns} className="diytable-footer" pagination={false}
+
+                        dataSource={cfgData}></Table>
+        <Pagination total={total} style={{float: "right", marginTop: "10px"}}
+                    onChange={this.onPageChange}
+                    current={this.state.page}
+                    pageSize={this.state.pageSize}/>
+      </div>
+
+    )
+
+
+
+  }
+  onPageChange=(page, pageSize) => {
+    const {user: {currentUser}} = this.props
+    this.setState({
+      page: page,
+      pageSize: pageSize
+    })
+    this.props.dispatch({
+      type: 'businessEtfTrade/queryCfg',
+      payload: {page: page,pageSize:pageSize,userId:currentUser.userId,tradingcode:this.state.tradingcode}
+
+    })
+  }
+
+  handleZqCodeSearch = (value) => {
+    const {dispatch} = this.props
+    const {user: {currentUser}} = this.props
+
+    const {timeOutGap} = this.state;
+
+    if (value) {
+      this.timer ? clearTimeout(this.timer) : '';
+      this.timer = setTimeout(() => {
+        dispatch({
+          type: 'businessEtfTrade/queryTradingcode',
+          payload: {
+            code: value,
+          },
+        });
+      }, timeOutGap);
+    }
+  }
+  handleCpCodeSearch = (value) => {
+    const {dispatch} = this.props
+    const {user: {currentUser}} = this.props
+
+    const {timeOutGap} = this.state;
+
+    if (value) {
+      this.timer ? clearTimeout(this.timer) : '';
+      this.timer = setTimeout(() => {
+        dispatch({
+          type: 'businessEtfTrade/queryProduct',
+          payload: {
+            value,
+            userId: currentUser.userId
+          },
+        });
+      }, timeOutGap);
+    }
+  }
+
+  handleZqCodeSelect = (value) => {
+    const {form} = this.props;
+    //先把组合清空
+
+    const {user: {currentUser}} = this.props
+    // this.props.dispatch({
+    //     //   type: 'etfTrade/queryProductTree',
+    //     //   payload: {
+    //     //     rootId: value,
+    //     //     nodeId: 'kkk',
+    //     //   },
+    //     // });
+
+    this.setState({
+      tradingcode: value.split("-")[0],
+      exchangecode: value.split("-")[1],
+      page:"1"
+    })
+    this.props.dispatch({
+      type: 'businessEtfTrade/save',
+      payload: {cfgData:[],total:undefined}
+
+    })
+    this.props.dispatch({
+      type: 'businessEtfTrade/queryCfg',
+      payload: {page: '1',pageSize:"5",userId:currentUser.userId,tradingcode:value.split("-")[0]}
+
+    })
+
+    this.props.dispatch({
+      type: 'businessEtfTrade/queryOneFnd',
+      payload: {
+        tradingcode: value.split("-")[0],
+        exchangecode:  value.split("-")[1],
+      },
+    });
+    form.validateFields(['cpbh','zhbh' ], (err, fieldsValue) => {
+      if (fieldsValue.cpbh==undefined||fieldsValue.zhbh==undefined){
+        return
+      }else {
+        this.props.dispatch({
+          type: 'businessEtfTrade/queryPositon',
+          payload: {
+            tradingcode: value.split("-")[0],
+            exchangecode:  value.split("-")[1],
+            fundId:fieldsValue.zhbh
+          },
+        });
+      }
+
+
+    })
+
+
+  }
+
+  handleCpCodeSelect = (value) => {
+    const {form} = this.props;
+    //先把组合清空
+    form.resetFields(['zhbh', 'zqdm']);
+    this.props.dispatch({
+      type: 'businessEtfTrade/queryProductTree',
+      payload: {
+        rootId: value,
+        nodeId: 'kkk',
+      },
+    });
+
+
+    this.setState({
+      cpCode: value,
+      tradingcode: undefined,
+      exchangecode: undefined,
+      fundId: undefined
+    })
+    this.props.dispatch({
+      type: 'businessEtfTrade/save',
+      payload: {
+        fundData: {}
+      },
+    });
+
+  }
+
+
+  handleZqCOdeChange = (value) => {
+
+    const {form} = this.props;
+    //先把组合清空
+    form.resetFields(['jysc']);
+
+    this.props.dispatch({
+      type: 'businessEtfTrade/save',
+      payload: {
+        positionData: {}
+      },
+    });
+
+  }
+  handleCpCOdeChange = (value) => {
+    if (value == null || value == undefined || value == "") {
+      const {form} = this.props;
+      //先把组合清空
+      form.resetFields(['zhbh', 'zqdm']);
+      this.setState({
+        tradingcode: undefined,
+        exchangecode: undefined,
+        fundId: undefined
+      })
+      this.props.dispatch({
+        type: 'businessEtfTrade/save',
+        payload: {
+          productTree: [],
+          fundData: {}
+        },
+      });
+    }
+  }
+
+
+  calculateAmount=(val,type)=>{
+
+    console.log("val-----",val)
+    const {form: {getFieldValue, setFieldsValue}} = this.props;
+    let price = getFieldValue('price');
+
+    let amount = getFieldValue('amount');
+    if (type=="price"){
+      price=val
+    }else {
+      amount=val
+    }
+    console.log("price-----",price)
+    console.log("amount-----",amount)
+    if (price&&price!=""&&amount&&amount!=""){
+      const zlprice = price * amount
+      console.log("zlprice-----",zlprice)
+      console.log("price * amount-----",price * amount)
+      setFieldsValue({
+       zlprice:zlprice
+      });
+    }else {
+      setFieldsValue({
+        zlprice:undefined
+      });
+    }
+
+  }
+	// 渲染查询form表单
+	renderForm2 = () => {
+    const { getFieldDecorator } = this.props.form;
+    // const { totalIncomeExchange: { batchNo, opeType, operateType, dataSg, teamListList, tzmdADD, fileList, delFileList, transType }, user: { currentUser: { name, userId, orgName } }, dispatch } = this.props;
+    const {user: { currentUser: { name, userId } }, dispatch } = this.props;
+		const userTeamCode = localStorage.getItem('antd-pro-userTeamCode') || '';
+		// const delFileListDep = JSON.parse(JSON.stringify(delFileList));
+		return (
+      
+			// <Form layout="inline">
+			// 	<Row gutter={{xl: 10, xxl: 20}}>
+			// 		<Col xl={8} md={12}>
+			// 			<FormItem label="建议书名称： ">
+			// 				{getFieldDecorator('investProposalName', {
+			// 					initialValue: '',
+			// 					rules: [{required: true, message: '建议书名称'}],
+			// 				})(
+			// 					// <Input placeholder="建议书名称" disabled={opeType === 'view' || opeType === 'OA'}/>               
+			// 					<Input placeholder="建议书名称" />
+      //           )}
+			// 			</FormItem>
+			// 		</Col>
+			// 		<Col xl={8} md={12}>
+			// 			<FormItem label="建议书编号： ">
+			// 				{getFieldDecorator('investProposalCode', {
+			// 					initialValue: '',
+			// 					rules: [{required: false, message: '建议书编号'}],
+			// 				})(
+			// 					<Input placeholder="建议书编号" disabled/>
+			// 				)}
+			// 			</FormItem>
+			// 		</Col>
+			// 		<Col xl={8} md={12}>
+			// 			<FormItem label="填写日期： ">
+			// 				{getFieldDecorator('applyDate', {
+      //           initialValue: moment(),
+			// 					rules: [{required: true, message: '填写日期'}],
+			// 				})(
+			// 					<DatePicker style={{width: '100%'}} disabled/>
+			// 				)}
+			// 			</FormItem>
+			// 		</Col>
+			// 		<Col xl={8} md={12}>
+			// 			<FormItem label="当前状态： ">
+			// 				{getFieldDecorator('status', {
+			// 					initialValue: '新建',
+			// 					rules: [{required: true, message: '状态'}],
+			// 				})(
+			// 					<Input placeholder="当前状态" disabled/>
+			// 				)}
+			// 			</FormItem>
+			// 		</Col>
+			// 		<Col xl={8} md={12}>
+			// 			<FormItem label="申请人： ">
+			// 				{getFieldDecorator('applyerName', {
+			// 					initialValue: name || 'name',
+			// 					rules: [{required: true, message: '申请人'}],
+			// 				})(
+			// 					<Input placeholder="申请人" disabled/>
+			// 				)}
+			// 			</FormItem>
+			// 		</Col>
+			// 		<Col xl={8} md={12}>
+			// 			<FormItem label="申请人工号： ">
+			// 				{getFieldDecorator('applyer', {
+			// 					initialValue: userId || 'userId',
+			// 					rules: [{required: true, message: '申请人工号'}],
+			// 				})(
+			// 					<Input placeholder="申请人工号" disabled/>
+			// 				)}
+			// 			</FormItem>
+			// 		</Col>
+			// 		<Col xl={8} md={12}>
+			// 			<FormItem label="申请部门： ">
+			// 				{getFieldDecorator('applyDept', {
+			// 					initialValue: orgName || 'orgName',
+			// 					rules: [{required: true, message: '申请部门'}],
+			// 				})(
+			// 					<Input placeholder="申请部门" disabled/>
+			// 				)}
+			// 			</FormItem>
+			// 		</Col>
+			// 	</Row>
+			// </Form>
+
+      <Form layout="inline">
+              <Row gutter={{xl: 10, xxl: 20}}>
+                <Col xl={12} xxl={8}>
+                  <FormItem label="建议书名称： ">
+                    {getFieldDecorator('investProposalName', {
+                      initialValue: '',
+                      rules: [{required: true, message: '建议书名称'}],
+                    })(
+                      // <Input placeholder="建议书名称" disabled={opeType === 'view' || opeType === 'OA'}/>               
+                      <Input placeholder="建议书名称" />
+                      )}
+                  </FormItem>                    
+                </Col>
+                {/* <Col xl={12} xxl={8}>
+                    <FormItem label="建议书编号： ">
+                      {getFieldDecorator('investProposalCode', {
+                        initialValue: '',
+                        rules: [{required: false, message: '建议书编号'}],
+                      })(
+                        <Input placeholder="建议书编号" disabled/>
+                      )}
+                    </FormItem>
+                  
+                </Col> */}
+                <Col xl={12} xxl={8}>
+                    <FormItem label="填写日期： ">
+                      {getFieldDecorator('applyDate', {
+                        initialValue: moment(),
+                        rules: [{required: true, message: '填写日期'}],
+                      })(
+                        <DatePicker style={{width: '100%'}} disabled/>
+                      )}
+                    </FormItem>
+                </Col>
+              </Row>
+              <Row gutter={{xl: 10, xxl: 20}}>
+                {/* <Col xl={12} xxl={8}>
+                    <FormItem label="当前状态： ">
+                      {getFieldDecorator('status', {
+                        initialValue: '新建',
+                        rules: [{required: true, message: '状态'}],
+                      })(
+                        <Input placeholder="当前状态" disabled/>
+                      )}
+                    </FormItem>
+                </Col> */}
+                <Col xl={12} xxl={8}>
+                    <FormItem label="申请人： ">
+                      {getFieldDecorator('applyerName', {
+                        initialValue: name || 'name',
+                        rules: [{required: true, message: '申请人'}],
+                      })(
+                        <Input placeholder="申请人" disabled/>
+                      )}
+                    </FormItem>
+                </Col>
+                <Col xl={12} xxl={8}>
+                    <FormItem label="申请人工号： ">
+                    {getFieldDecorator('applyer', {
+                      initialValue: userId || 'userId',
+                      rules: [{required: true, message: '申请人工号'}],
+                    })(
+                      <Input placeholder="申请人工号" disabled/>
+                    )}
+                  </FormItem>
+                </Col>
+              </Row>     
+            </Form>
+		);
+  }
+
+  // let datas = [] //是一个树结构的数据
+// setName(datas){ //遍历树  获取id数组
+//   for(var i in datas){
+//     this.expandedKeys.push(datas[i].id)
+//     if(datas[i].children){
+//       this.setName(datas[i].children);
+//     }
+//   }
+// },
+
+  // setTree = (data) =>{
+  //   let that = this
+  //   for(let i in data){
+  //     data['children'].length>0 ? data['disabled'] = true : data['disabled'] = false
+  //     if(data['children'].length>0){
+  //       data['children'].forEach((item)=>{
+  //         that.setTree(item);
+  //       })        
+  //     }
+  //   }
+  // }
+  
+  fromrender = () => {
+    const that = this
+    const {form} = this.props;
+    //先把组合清空
+    const { getFieldDecorator } = this.props.form;
+    const {user: { currentUser: { name, userId } }, dispatch } = this.props;
+    // const {form: {getFieldDecorator}, dispatch} = this.props
+    const {user: {currentUser}} = this.props;
+    const {businessEtfTrade: {cpCode, productTree, zqCode}} = this.props;
+    // console.log(productTree)
+
+
+    // productTree.map(item =>{
+    //   console.log(that.setTree(item)) 
+    //   console.log(item)
+    // })
+
+    // console.log(that.setTree(productTree[0]))
+
+    const cpChildren = cpCode.map((item) => {
+      return <Select.Option
+        key={item.id}>{`${item.portfolioCode}-${item.portfolioName}`}</Select.Option>;
+    });
+    const zqChildren = zqCode.map((item) => {
+      return <Select.Option
+        key={item.tradingcode + "-" + item.exchangecode+"-"+item.secuabbr}>{`${item.tradingcode}-${item.secuabbr}`}</Select.Option>;
+    });
+
+    const jysc = [{id: "101", value: "上交所"}, {id: "105", value: "深交所"}]
+    const jyscChildren = jysc.map((item) => {
+      return <Select.Option
+        key={item.id}>{`${item.value}`}</Select.Option>;
+    });
+    const jyfx = [{id: "1", value: "买入"}, {id: "2", value: "卖出"}]
+    const jyfxChildren = jyfx.map((item) => {
+      return <Select.Option
+        key={item.id}>{`${item.value}`}</Select.Option>;
+    });
+    const jylx = [{id: "2", value: "限价"}, {id: "1", value: "市价"}]
+    const jylxChildren = jylx.map((item) => {
+      return <Select.Option
+        key={item.id}>{`${item.value}`}</Select.Option>;
+    });
+    const treeProps = {
+      treeData: productTree,
+      showSearch: false,
+      allowClear: false,
+      treeDefaultExpandAll: true,
+      placeholder: '请选择',
+      onSelect(value) {
+        that.setState({
+          fundId: value,
+          tradingcode: undefined,
+          exchangecode: undefined
+        })
+        form.resetFields(['zqdm', 'jysc']);
+        dispatch({
+          type: 'businessEtfTrade/queryFund',
+          payload: {
+            nodeId: value,
+            code: 'kk',
+          },
+        });
+      },
+    };
+
+    return (
+      <div>
+      <Form layout="inline">
+      <Row gutter={{xl: 10, xxl: 20}}>
+        <Col xl={12} xxl={8}>
+          <FormItem label="建议书名称： ">
+            {getFieldDecorator('investProposalName', {
+              initialValue: '',
+              rules: [{required: true, message: '建议书名称'}],
+            })(
+              // <Input placeholder="建议书名称" disabled={opeType === 'view' || opeType === 'OA'}/>               
+              <Input placeholder="建议书名称" />
+              )}
+          </FormItem>                    
+        </Col>
+        {/* <Col xl={12} xxl={8}>
+            <FormItem label="建议书编号： ">
+              {getFieldDecorator('investProposalCode', {
+                initialValue: '001',
+                rules: [{required: false, message: '建议书编号'}],
+              })(
+                <Input placeholder="建议书编号" disabled/>
+              )}
+            </FormItem>
+          
+        </Col> */}
+        <Col xl={12} xxl={8}>
+            <FormItem label="填写日期： ">
+              {getFieldDecorator('applyDate', {
+                initialValue: moment(),
+                rules: [{required: true, message: '填写日期'}],
+              })(
+                <DatePicker style={{width: '100%'}} disabled/>
+              )}
+            </FormItem>
+        </Col>
+      </Row>
+      <Row gutter={{xl: 10, xxl: 20}}>
+        {/* <Col xl={12} xxl={8}>
+            <FormItem label="当前状态： ">
+              {getFieldDecorator('status', {
+                initialValue: '新建',
+                rules: [{required: true, message: '状态'}],
+              })(
+                <Input placeholder="当前状态" disabled/>
+              )}
+            </FormItem>
+        </Col> */}
+        <Col xl={12} xxl={8}>
+            <FormItem label="申请人： ">
+              {getFieldDecorator('applyerName', {
+                initialValue: name || 'name',
+                rules: [{required: true, message: '申请人'}],
+              })(
+                <Input placeholder="申请人" disabled/>
+              )}
+            </FormItem>
+        </Col>
+        <Col xl={12} xxl={8}>
+            <FormItem label="申请人工号： ">
+            {getFieldDecorator('applyer', {
+              initialValue: userId || 'userId',
+              rules: [{required: true, message: '申请人工号'}],
+            })(
+              <Input placeholder="申请人工号" disabled/>
+            )}
+          </FormItem>
+        </Col>
+      </Row> 
+        <Row gutter={{xl: 10, xxl: 20}}>
+          <Col xl={24} xxl={16}>
+              <ProductGroupSepC
+                        form={this.props.form}
+                        title={['产品编号','组合编号']}
+                        authority = {'write'}
+                        multipleGroup={false}
+                        dataIndex={['cpbh','zhbh']}
+                        rules = {[[{required: true, message: "请选择产品"}],[{ required: true, message: "请选择组合"}]]}
+                        // helper={['lalal', 'yyay']}
+                        // initialValue={['28bfc1416fadb919016fb1480551005e',["9e23ea5e5b494948b0f923705dd2887b", "dcf1ac00cbd4490188406f82a5a596de"]]}
+                        productOnChange={e=>this.handleCpCOdeChange(e)}
+                        groupOnChange={e=>this.groupOnChange(e)}
+                        // onRef = {ref => this.setState({ProductGroupSepC1: ref})}
+                    />
+                </Col>
+          {/* <Col xl={12} xxl={8}>
+            <FormItem label="产品编号" labelCol={{span: 6}}>
+              {getFieldDecorator('cpbh', {
+
+                rules: [{
+                  required: true, message: "请选择产品"
+                }]
+              })(<Select
+                allowClear
+                showSearch
+                style={{width: '100%'}}
+                placeholder="请选择"
+                optionFilterProp="children"
+                onSearch={this.handleCpCodeSearch}
+                onSelect={this.handleCpCodeSelect}
+                onChange={this.handleCpCOdeChange}
+              >
+                {cpChildren}
+              </Select>)}
+            </FormItem>
+          </Col>
+          <Col xl={12} xxl={8}>
+            <FormItem label="组合编号">
+              {getFieldDecorator('zhbh', {
+                rules: [{
+                  required: true, message: "请选择组合"
+                }]
+              })(
+                <TreeSelect {...treeProps} />
+              )}
+            </FormItem>
+          </Col> */}
+          <Col xl={12} xxl={8}>
+            <FormItem label="证券代码" labelCol={{span: 6}}>
+              {getFieldDecorator('zqdm', {
+
+                rules: [{
+                  required: true, message: "请选择证券"
+                }]
+              })(<Select
+                allowClear
+                showSearch
+                style={{width: '100%'}}
+                placeholder="请选择"
+                optionFilterProp="children"
+                onSearch={this.handleZqCodeSearch}
+                onSelect={this.handleZqCodeSelect}
+                onChange={this.handleZqCOdeChange}
+              >
+                {zqChildren}
+              </Select>)}
+            </FormItem>
+          </Col>
+        </Row>
+        <Row gutter={{xl: 10, xxl: 20}}>
+          <Col xl={12} xxl={8}>
+            <FormItem label="交易市场" labelCol={{span: 6}}>
+              {getFieldDecorator('jysc', {
+                initialValue: this.state.exchangecode,
+                rules: [{
+                  required: true, message: "请选择交易市场"
+                }]
+              })(<Select
+
+                style={{width: '100%'}}
+                placeholder="请选择"
+                optionFilterProp="children"
+                disabled={true}
+              >
+                {jyscChildren}
+              </Select>)}
+            </FormItem>
+          </Col>
+          <Col xl={12} xxl={8}>
+            <FormItem label="交易方向" labelCol={{span: 6}}>
+              {getFieldDecorator('jyfx', {
+
+                rules: [{
+                  required: true, message: "请选择交易方向"
+                }]
+              })(<Select
+
+                style={{width: '100%'}}
+                placeholder="请选择"
+                optionFilterProp="children"
+
+              >
+                {jyfxChildren}
+              </Select>)}
+            </FormItem>
+          </Col>
+          <Col xl={12} xxl={8}>
+            <FormItem label="交易类型" labelCol={{span: 6}}>
+              {getFieldDecorator('jylx', {
+                initialValue:"2",
+                rules: [{
+                  required: true, message: "请选择交易类型"
+                }]
+              })(<Select
+                disabled={true}
+                style={{width: '100%'}}
+                placeholder="请选择"
+                optionFilterProp="children"
+
+              >
+                {jylxChildren}
+              </Select>)}
+            </FormItem>
+          </Col>
+        </Row>
+        <Row gutter={{xl: 10, xxl: 20}}>
+          <Col xl={12} xxl={8}>
+            <FormItem label="价格">
+              {getFieldDecorator('price', {
+                rules: [{required: true, message: '请输入全价!'}],
+              })(
+                <InputNumber
+                  onChange={val => this.calculateAmount(val,"price")}
+                  disabled={false}
+                  style={{width: '100%'}}
+                  precision={3}
+                  min={0.001}
+                  max={999999999999}
+                  formatter={inValue => fixedNumber(inValue)}
+                  parser={inValue => inValue.replace(/\$\s?|(,*)/g, '')}
+                />
+              )}
+            </FormItem>
+          </Col>
+          <Col xl={12} xxl={8}>
+            <FormItem label="数量(股)">
+              {getFieldDecorator('amount', {
+                rules: [{required: true, message: '请输入数量!'},    {pattern: /^[1-9]\d*00$/, message: '请输入100的倍数'},],
+              })(
+                <InputNumber
+                  onChange={val => this.calculateAmount(val,"amount")}
+                  disabled={false}
+                  style={{width: '100%'}}
+                  precision={0}
+                  min={0}
+                  max={999999999999}
+                  formatter={inValue => fixedNumber(inValue)}
+                  parser={inValue => inValue.replace(/\$\s?|(,*)/g, '')}
+                />
+              )}
+            </FormItem>
+          </Col>
+          <Col xl={12} xxl={8}>
+            <FormItem label="指令金额">
+              {getFieldDecorator('zlprice', {
+                rules: [{required: true, message: '请输入价格与数量!'}],
+              })(
+                <InputNumber
+                  onChange={val => this.calculateAmount(val)}
+                  disabled={true}
+                  style={{width: '100%'}}
+                  precision={3}
+                  min={0}
+                  max={999999999999}
+                  formatter={inValue => fixedNumber(inValue)}
+                  parser={inValue => inValue.replace(/\$\s?|(,*)/g, '')}
+                />
+              )}
+            </FormItem>
+          </Col>
+        </Row>
+        <Row gutter={{xl: 10, xxl: 20}}>
+          <Col xl={24}>
+            <FormItem label="备注">
+              {getFieldDecorator('remark', {})(
+                <TextArea
+                  style={{height: '55px'}}
+                  placeholder=""
+                />
+              )}
+            </FormItem>
+          </Col>
+        </Row>
+      </Form>
+        <div className={BondTrade.buttonDiv}>
+          {/* <Button  style={{background: '#B0B7C9'}} >保存</Button> */}
+          <Button onClick={this.orderInstructio}  style={{ background: '#56678A' }} >提交</Button>
+        </div>
+      </div>
+    )
+
+
+  }
+
+
+  fromrender2 = () => {
+    const that = this
+    const {form} = this.props;
+    //先把组合清空
+    const { getFieldDecorator } = this.props.form;
+    const {user: { currentUser: { name, userId } }, dispatch } = this.props;
+    // const {form: {getFieldDecorator}, dispatch} = this.props
+    const {user: {currentUser}} = this.props;
+    const {businessEtfTrade: {cpCode, productTree, zqCode}} = this.props;
+    // console.log(productTree)
+
+    // console.log(that.state.newValue)
+    const cpChildren = cpCode.map((item) => {
+      return <Select.Option
+        key={item.id}>{`${item.portfolioCode}-${item.portfolioName}`}</Select.Option>;
+    });
+    const zqChildren = zqCode.map((item) => {
+      return <Select.Option
+        key={item.tradingcode + "-" + item.exchangecode+"-"+item.secuabbr}>{`${item.tradingcode}-${item.secuabbr}`}</Select.Option>;
+    });
+
+    const jysc = [{id: "101", value: "上交所"}, {id: "105", value: "深交所"}]
+    const jyscChildren = jysc.map((item) => {
+      return <Select.Option
+        key={item.id}>{`${item.value}`}</Select.Option>;
+    });
+    const jyfx = [{id: "1", value: "买入"}, {id: "2", value: "卖出"}]
+    const jyfxChildren = jyfx.map((item) => {
+      return <Select.Option
+        key={item.id}>{`${item.value}`}</Select.Option>;
+    });
+    const jylx = [{id: "2", value: "限价"}, {id: "1", value: "市价"}]
+    const jylxChildren = jylx.map((item) => {
+      return <Select.Option
+        key={item.id}>{`${item.value}`}</Select.Option>;
+    });
+    const treeProps = {
+      treeData: productTree,
+      showSearch: false,
+      allowClear: false,
+      treeDefaultExpandAll: true,
+      placeholder: '请选择',
+      onSelect(value) {
+        that.setState({
+          fundId: value,
+          tradingcode: undefined,
+          exchangecode: undefined
+        })
+        form.resetFields(['zqdm', 'jysc']);
+        dispatch({
+          type: 'businessEtfTrade/queryFund',
+          payload: {
+            nodeId: value,
+            code: 'kk',
+          },
+        });
+      },
+    };
+
+    return (
+      <div>
+      <Form layout="inline">
+      <Row gutter={{xl: 10, xxl: 20}}>
+        <Col xl={12} xxl={8}>
+          <FormItem label="建议书名称： ">
+            {getFieldDecorator('investProposalName2', {
+              initialValue: that.state.newValue.proposalName,
+              rules: [{required: true, message: '建议书名称'}],
+            })(
+              // <Input placeholder="建议书名称" disabled={opeType === 'view' || opeType === 'OA'}/>               
+              <Input placeholder="建议书名称" disabled />
+              )}
+          </FormItem>                    
+        </Col>
+        <Col xl={12} xxl={8}>
+            <FormItem label="申请人： ">
+              {getFieldDecorator('applyerName2', {
+                initialValue: name || 'name',
+                rules: [{required: true, message: '申请人'}],
+              })(
+                <Input placeholder="申请人" disabled/>
+              )}
+            </FormItem>
+        </Col>
+        <Col xl={12} xxl={8}>
+            <FormItem label="申请人工号： ">
+            {getFieldDecorator('applyer2', {
+              initialValue: userId || 'userId',
+              rules: [{required: true, message: '申请人工号'}],
+            })(
+              <Input placeholder="申请人工号" disabled/>
+            )}
+          </FormItem>
+        </Col>
+      </Row>
+
+        <Row gutter={{xl: 10, xxl: 20}}>
+          <Col xl={12} xxl={8}>
+            <FormItem label="证券代码" labelCol={{span: 6}}>
+              {getFieldDecorator('zqdm2', {
+               initialValue: that.state.newValue.secuabbr2,
+                rules: [{
+                  required: true, message: "请选择证券"
+                }]
+              })(<Select
+                allowClear
+                showSearch
+                style={{width: '100%'}}
+                placeholder="请选择"
+                optionFilterProp="children"
+                disabled={true}
+                onSearch={this.handleZqCodeSearch}
+                onSelect={this.handleZqCodeSelect}
+                onChange={this.handleZqCOdeChange}
+              >
+                {zqChildren}
+              </Select>)}
+            </FormItem>
+          </Col>
+          <Col xl={12} xxl={8}>
+            <FormItem label="交易方向" labelCol={{span: 6}}>
+              {getFieldDecorator('jyfx2', {
+                initialValue: that.state.newValue.direction,
+                rules: [{
+                  required: true, message: "请选择交易方向"
+                }]
+              })(<Select
+                disabled={true}
+                style={{width: '100%'}}
+                placeholder="请选择"
+                optionFilterProp="children"
+
+              >
+                {jyfxChildren}
+              </Select>)}
+            </FormItem>
+          </Col>
+          <Col xl={12} xxl={8}>
+            <FormItem label="价格">
+              {getFieldDecorator('price2', {
+                initialValue: that.state.newValue.price,
+                rules: [{required: true, message: '请输入全价!'}],
+              })(
+                <InputNumber
+                  onChange={val => this.calculateAmount(val,"price")}
+                  disabled={true}
+                  style={{width: '100%'}}
+                  precision={3}
+                  min={0.001}
+                  max={999999999999}
+                  formatter={inValue => fixedNumber(inValue)}
+                  parser={inValue => inValue.replace(/\$\s?|(,*)/g, '')}
+                />
+              )}
+            </FormItem>
+          </Col>
+        </Row>
+        <Row gutter={{xl: 10, xxl: 20}}>
+
+          <Col xl={12} xxl={8}>
+            <FormItem label="数量(股)">
+              {getFieldDecorator('amount2', {
+                initialValue: that.state.newValue.amount,
+                rules: [{required: true, message: '请输入数量!'},    {pattern: /^[1-9]\d*00$/, message: '请输入100的倍数'},],
+              })(
+                <InputNumber
+                  onChange={val => this.calculateAmount(val,"amount")}
+                  disabled={true}
+                  style={{width: '100%'}}
+                  precision={0}
+                  min={0}
+                  max={999999999999}
+                  formatter={inValue => fixedNumber(inValue)}
+                  parser={inValue => inValue.replace(/\$\s?|(,*)/g, '')}
+                />
+              )}
+            </FormItem>
+          </Col>
+          <Col xl={12} xxl={8}>
+            <FormItem label="指令金额">
+              {getFieldDecorator('zlprice2', {
+                initialValue:that.state.newValue.parValueTotal,
+                rules: [{required: true, message: '请输入价格与数量!'}],
+              })(
+                <InputNumber
+                  onChange={val => this.calculateAmount(val)}
+                  disabled={true}
+                  style={{width: '100%'}}
+                  precision={3}
+                  min={0}
+                  max={999999999999}
+                  formatter={inValue => fixedNumber(inValue)}
+                  parser={inValue => inValue.replace(/\$\s?|(,*)/g, '')}
+                />
+              )}
+            </FormItem>
+          </Col>
+        </Row>
+      </Form>
+      </div>
+    )
+  }
+  orderInstructio=(e)=>{
+
+    e.preventDefault();
+    const {user: {currentUser}} = this.props;
+    const {form} = this.props;
+    const {businessEtfTrade: { cpCode,
+      productTree,
+      fundData,
+      zqCode,
+      positionData,
+      oneFndData,
+      cfgData}} = this.props;
+    form.validateFields(['investProposalName','applyDate','applyerName','applyer','cpbh','zhbh','zqdm','jysc', 'jyfx','jylx','price','amount','zlprice','remark',], (err, fieldsValue) => {
+
+      if (err) return;
+      if (fieldsValue.amount&&fieldsValue.amount>1000000){
+        message.warning("委托数量不能大于一百万")
+        return;
+      }
+
+      if(fieldsValue.jyfx=="1"){
+        if (fundData&&fundData.tzeroAvailableFund){
+          if (fundData.tzeroAvailableFund<fieldsValue.zlprice){
+            message.warning("T+0可用金额不足")
+            return;
+          }
+        }else {
+          message.warning("T+0可用金额不足")
+          return;
+        }
+      }else {
+        if (positionData&&positionData.availableAmount){
+          if (positionData.availableAmount<fieldsValue.amount){
+            message.warning("可用数量不足")
+            return;
+          }
+        }else {
+          message.warning("可用数量不足")
+          return;
+        }
+      }
+
+      let newApplyDate = ''
+      if (fieldsValue.applyDate) { 
+        const day = moment(fieldsValue.applyDate);
+         newApplyDate  = (day.add(0, 'days')).format('YYYY-MM-DD');
+        delete fieldsValue.applyDate; 
+      }
+
+     let pmsProposalBaseinfo = {}
+     pmsProposalBaseinfo.portfolioid = fieldsValue.zhbh
+     pmsProposalBaseinfo.proposalWriteDate = newApplyDate
+     pmsProposalBaseinfo.proposalType= '1'
+     pmsProposalBaseinfo.proposalStatus= '2'
+
+      const value = {
+        // pmsProposalBaseinfo:pmsProposalBaseinfo,
+        proposalWriteDate:newApplyDate,
+        // investProposalName:fieldsValue.investProposalName,
+        proposalName:fieldsValue.investProposalName,
+        // proposerNumber:fieldsValue.applyer,
+        username:fieldsValue.applyerName,
+        // applyerName:fieldsValue.applyerName,
+        // applyer:fieldsValue.applyer,
+        amount: fieldsValue.amount,
+        direction: fieldsValue.jyfx,
+        parValueTotal: fieldsValue.zlprice,
+        portfolioid: fieldsValue.zhbh,
+        // pmsProposalBaseinfo_id: fieldsValue.zhbh,
+        price: fieldsValue.price,
+        productid: fieldsValue.cpbh,
+        remark: fieldsValue.remark,
+        secuabbr2:fieldsValue.zqdm,
+        secuabbr: fieldsValue.zqdm.split("-")[2],
+        tradingcode: fieldsValue.zqdm.split("-")[0],
+        exchangecode:fieldsValue.zqdm.split("-")[1],
+        userid: currentUser.userId,
+        // username: currentUser.name,
+        type:fieldsValue.jylx
+      }
+
+      this.setState({
+        newValue:value,
+        showModal:true
+      })
+
+      // this.props.dispatch({
+      //   type: 'businessEtfTrade/add',
+      //   payload: value
+      // });
+
+      // form.resetFields(['cpbh','zhbh','zqdm','jysc', 'jyfx','jylx','price','amount','zlprice','remark','investProposalName']);
+      // this.props.dispatch({
+      //   type: 'businessEtfTrade/save',
+      //   payload: {
+      //     productTree:[],
+      //     fundData:{},
+      //     zqCode:[],
+      //     positionData:{},
+      //     oneFndData:{},
+      //     cfgData:[]
+      //   }
+      // });
+      // this.setState({
+      //   cpCode: undefined,
+      //   fundId: undefined,
+      //   tradingcode: undefined,
+      //   exchangecode: undefined
+      // })
+    })
+  }
+
+  handleOk = (proposalStatus)=>{
+    const that = this
+    const {form} = this.props;
+    const {businessEtfTrade: { cpCode,
+      productTree,
+      fundData,
+      zqCode,
+      positionData,
+      oneFndData,
+      cfgData}} = this.props;
+
+    this.props.dispatch({
+      type: 'businessEtfTrade/add',
+      payload: that.state.newValue
+    });
+
+    form.resetFields(['cpbh','zhbh','zqdm','jysc', 'jyfx','jylx','price','amount','zlprice','remark','investProposalName']);
+    this.props.dispatch({
+      type: 'businessEtfTrade/save',
+      payload: {
+        productTree:[],
+        fundData:{},
+        zqCode:[],
+        positionData:{},
+        oneFndData:{},
+        cfgData:[]
+      }
+    });
+    this.setState({
+      cpCode: undefined,
+      fundId: undefined,
+      tradingcode: undefined,
+      exchangecode: undefined
+    })
+
+    this.handleCancel()   
+  }
+
+  handleCancel = ()=>{
+      this.setState({
+        showModal: false,
+      })
+  }
+ 
+
+  renderModal2() {
+    const that = this;
+    const {showModal} = this.state;
+
+    const modalProps = {
+      destroyOnClose: true,
+      visible:showModal,
+      maskClosable: false,
+      title: 'ETF买卖建议书',
+      width: 1230,
+      wrapClassName: 'footer_btns',
+      // onOk:()=>{this.handleOk()},
+      onCancel:()=>{this.handleCancel()},
+      footer:[
+        <Button key='ok' type="primary" onClick={()=>this.handleOk('SENT')} >
+          确认
+        </Button>,
+        <Button  key='reject' onClick={()=>this.handleCancel()} >
+          取消
+        </Button>,
+      ] 
+      
+    }
+    return (
+      <Modal {...modalProps} >
+        <Row gutter={{lg: 15}}>
+          <Col>
+               <div className={fundTradeStyle.tradeFrom}>
+                 {that.fromrender2()}
+                </div>
+          </Col>
+        </Row>
+      </Modal>
+    );
+  }
+
+  render() {
+
+
+    return (
+      <PageHeaderLayout>
+        <div>
+          {this.renderModal2()}
+          <Row gutter={{lg: 15}}>
+            <Col lg={8} xxl={6}>
+
+              <Card
+                // className={fundTradeStyle.bondCard}
+                title="ETF基本信息"
+              >
+                {this.etfjbxx()}
+              </Card>
+
+              <Card
+                // className={fundTradeStyle.bondCard}
+                title="资金可用"
+              >
+                {this.etfzjky()}
+              </Card>
+              <Card
+                className={fundTradeStyle.bondCard}
+                title="持仓可用"
+              >
+                {this.etfCcky()}
+              </Card>
+            </Col>
+            <Col lg={16} xxl={18}>
+              {/* <Card
+                // className={fundTradeStyle.bondCard}
+                title="ETF申赎成份股"
+              >
+                {this.etfSscfg()}
+              </Card> */}
+              {/* <Card
+                className={fundTradeStyle.bondCard}
+                title="ETF建议书"
+                bordered={false}
+              >
+                <div className={fundTradeStyle.tradeFrom}>
+                  {this.renderForm2()}
+                </div>
+              </Card> */}
+
+              <Card
+               
+                title="ETF申赎成份股"
+              >
+                {this.etfSscfg()}
+              </Card>
+              <Card
+                className={BondTrade.tabsCard}
+                title="ETF买卖建议书"
+                bordered={false}
+              >
+
+       
+              
+                    <div className={fundTradeStyle.tradeFrom}>
+                      {this.fromrender()}
+                    </div>
+             
+
+            
+
+              </Card>
+
+
+
+            </Col>
+          </Row>
+        </div>
+      </PageHeaderLayout>
+
+
+    )
+  }
+
+
+}
+
+
+
+
+
 
 
 
