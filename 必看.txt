@@ -1,53 +1,5 @@
-
-{
-  "entry": "src/index.js",
-  "extraBabelPlugins": [
-    "transform-decorators-legacy",
-    ["import", { "libraryName": "antd", "libraryDirectory": "es", "style": true }]
-  ],
-  "env": {
-    "development": {
-      "extraBabelPlugins": [
-        "dva-hmr"
-      ]
-    }
-  },
-  "proxy": {
-    "/api/v1/**": {
-      "target": "http://168.63.65.193:9106/maat",
-      "changeOrigin": true
-    },
-    "/api/v3/**": {
-      "target": "http://168.63.65.193:9106/maat",
-      "changeOrigin": true
-    },
-    "/api/v2/**": {
-      "target": "http://localhost:8080/",
-      "changeOrigin": true
-    },
-    "/gateway/**": {
-      "target": "http://168.63.65.193:9106/maat",
-      "changeOrigin": true
-    },
-    "tzptapi/v1**": {
-      "target": "http://168.61.9.125:7502/",
-      "changeOrigin": true
-    },
-    "/thfx/**": {
-      "target": "http://168.61.125.111/maat/",
-      "changeOrigin": true
-    },
-    "/bond/**": {
-      "target": "http://168.63.125.126:8888/",
-      "changeOrigin": true
-    }
-  },
-  "ignoreMomentLocale": true,
-  "theme": "./src/theme.js",
-  "html": {
-    "template": "./src/index.ejs"
-  },
-  "publicPath": "",
-  "disableDynamicImport": true,
-  "hash": true
-}
+// https://github.com/ant-design/ant-design/blob/master/components/style/themes/default.less
+module.exports = {
+  // 'primary-color': '#10e99b',
+  'card-actions-background': '#f5f8fa',
+};
