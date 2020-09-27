@@ -1,197 +1,1123 @@
-import {ProductGroupTreeC, ProductListC, ProductGroupSepC,SecuritiesCodeC,codeType} from './business';
-import AdvancedSearch from './AdvancedSearch';
-import { DATA_ENTRY, FormItemLayout,ComplexDateC,RangeDateC, SelectC } from './form';
-import { PrimaryC, PrimaryGhostC } from './button';
-import ModalC from './modal';
-import { FirstHeaderC, SecondHeaderC,QuickQueryC,NoQueryC,NoDataC } from './other';
-import { XYAxisChartsC, XYHorizontalChartsC } from './echarts';
-import { TableC } from './table';
+/**
+ * 折线图、柱状图、面积图、点状图、堆叠折现图、堆叠面积图、堆叠柱状图
+ * XYAxisChartsC (reactCharts)
+ * @author zxy
+ * @date  2020-09-08
+ */
+import React from 'react';
+import PropTypes from 'prop-types';
+import ReactEcharts from "echarts-for-react";
+import {Spin } from 'antd';
+import { NoDataC } from '../../other';
+import Color from '../../../css/colors';
+import _ from 'lodash';
+
+class XYAxisChartsC extends React.Component{
+  // 入参默认值设置
+  static defaultProps = {
+    xAxis: undefined,
+    series: undefined,
+    type: 'line',            // 默认折线图
+    height: '100%',          // 图形高度默认为父节点的100%
+    width: '100%',           // 图形宽度默认为父节点的100%
+    dataZoom: false,         // 默认无横向滚动轴
+    colors: Color.echart,    // 默认系统色
+    title: '',               // 标题默认为空
+    yAxisUnit: [],           // 默认纵轴上无单位（从左向右，每一项用字符串数据表示）
+    yAxisFormat:[],          // 默认纵轴数据显示无格式处理（从左向右，每一项用func表示，如[value=>parseInt(value)}, value=>value+'%',...]）
+    yAxisRange:[],           // 默认使用组件内部min max策略
+    boundaryGap: true,       // 默认坐标轴两边留白
+    lableRotate: 0,          // 默认横轴字体不旋转
+    isAbbreviate: false,     // 默认不缩略展示
+    showBorder: false,       // 默认不展示外边框
+    toolTipFormat: undefined,// 默认按自定义的提示信息样式展示
+    toolTipDataFormat: [],   // 默认提示信息中的数据无任何处理
+    hasYAxisPosi: false,     // 默认不在图例中显示“左右”
+    gridLeft: 60,            // 默认左轴距离左侧距离为60
+    gridRight: 60,           // 默认右轴距离右侧距离为60
+    seriesLabelDataFormat:[],// 默认不展示图形上的文本标签
+    percentStyle: [],        // 默认不必遵守百分比规则
+    markArea: undefined,     // 默认不设置区域样式
+    barMaxWidth: 20,         // 默认柱状图最大宽度是20
+    legentAbbreviate: false, // 默认图例不缩略展示
+    debtAndProfit:false,     // 默认无收益&负债类型的样式（红绿）
+    click: () => {},         // 默认不响应click事件
+  }
+
+  debtAndProfitColor = Color.debtAndProfit.background;// type为收益负债模式时，固定显示的颜色
+  constructor(props){
+    super(props);
+
+    this.state = {
+      chartHeight: props.height === 'auto' ? 200 : props.height, // 根据当前图例数据量的多少自动设置图形高度
+    }
+  }
+
+  componentWillReceiveProps(nextProps){
+    if(this.props.xAxis === undefined && this.props.series === undefined && nextProps.xAxis && nextProps.series){
+      this.echartsIsInit = false;
+    }
+  }
+
+  SERIESLABELWidth = 40;    // 常量，图形上文本标签宽度显示上限 
+  // 返回option
+  getOption = (legend, yAxis, series, dataZoom) => {
+    const { colors, title,xAxis, toolTipFormat, yAxisUnit, boundaryGap, showBorder,markArea,
+      type, lableRotate, toolTipDataFormat, hasYAxisPosi, gridLeft,  gridRight, isAbbreviate,legentAbbreviate} = this.props; 
+    return{
+      // 调色盘颜色列表
+      color: colors,
+      // 主标题和副标题
+      title: {
+        show: title ? true : false,
+        left:'20',
+        top: showBorder ? 10 : 0,
+        text: title,
+        textStyle: {
+          color: '#333333',
+          fontSize: 14,
+          fontWeight: 'normal',
+          lineHeight:20,
+        }
+      },
+      // 鼠标移动上去提示信息
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'cross',  // tooltip展示十字型
+          crossStyle: {
+              color: '#999999'
+          },
+          label: {
+            backgroundColor: '#666666',
+            color: 'rgba(255,255,255,1)',
+            padding: [7,7,5,7]
+          },
+        },
+        formatter: toolTipFormat ? toolTipFormat : (params) => {
+          let str = '<div style="color:#FFFFFF">';
+          str += `<div>${params[0].name}</div>`;
+          
+          params.map((item, index) => {
+            let value = item.value;
+            // 根据seriesName，去series匹配，找出对应的yAxisIndex
+            let yAxisIndex = -1;
+            series.forEach(element => {
+              if(element.name === item.seriesName){
+                yAxisIndex = element.yAxisIndex;
+              }
+            });
+            if(toolTipDataFormat[yAxisIndex]){
+              value = toolTipDataFormat[yAxisIndex](value);
+            }
+            str += `<div style="display:flex;align-items:center">
+                      <div style="border:1px solid rgba(255,255,255,1);width:10px;height:10px;border-radius:50%;background-color:${item.color};margin-right:10px"></div> 
+                      ${item.seriesName}： ${value}
+                    </div>`
+          })
+          str += '</div>'
+          return str;
+        },
+        padding: [10,15,10,15],
+        confine: true,
+      },
+      // 图例
+      legend: {
+        show: legend.length > 1 ? true : false,  // 只有一项时，隐藏
+        data: legend,     
+        bottom: 5,
+        right: 40,
+        textStyle: {
+          color:'#666666',
+          fontSize:12,
+        },
+        itemWidth: 14,
+        itemHeight: 14,
+        borderRadius: [0, 0, 0, 0],
+        formatter: name => {
+          // 图例缩略展示
+          if(legentAbbreviate && name && name.length > 5){
+            return name.substring(0 ,5)+'...';
+          }else if(hasYAxisPosi){   // 图例显示左右轴
+            // 根据name，去series匹配，找出对应的yAxisIndex
+            let yAxisIndex = -1;
+            series.forEach(element => {
+              if(element.name === name){
+                yAxisIndex = element.yAxisIndex;
+              }
+            });
+            if(yAxisIndex === 0){
+              return `${name}(左)`;
+            }else{
+              return `${name}(右)`;
+            }
+          }else{
+            return name;
+          }
+        }
+      },
+      // 直角坐标系内绘图网格
+      grid: {
+        left: gridLeft,
+        right: gridRight,
+        top: showBorder ? 
+          (title ? (yAxisUnit.length > 0 ? 80 : 60) : (yAxisUnit.length > 0 ? 56 : 36)) :
+          (title ? (yAxisUnit.length > 0 ? 70 : 50) : (yAxisUnit.length > 0 ? 30 : 10)), // 根据是否有边框、title、坐标轴显示名称动态调整
+        bottom: lableRotate === 0 ? 
+          (legend.length > 1 ? (dataZoom ? 120 : 75) : (dataZoom ? 100 : 50)) : 
+          (legend.length > 1 ? (dataZoom ? 140 : 95) : (dataZoom ? 120 : 70)),
+      },
+      // 横轴
+      xAxis: {
+        type: 'category',
+        boundaryGap: markArea ? false : (type === 'area' || type === 'areaStack' ? false : boundaryGap), // 标记横轴左右是否有空隙
+        data: xAxis,
+        axisLine: {
+          lineStyle: {
+            color: "#DDDDDD"
+          }
+        },
+        axisTick: {
+          show: false
+        },
+        axisLabel: {
+          color: '#4A4A4A',
+          margin: 12,   // 与横轴的距离
+          fontSize: 12,
+          rotate: isAbbreviate ? 30 : lableRotate,  // 字体旋转角度
+          formatter: (value, index) => { // 10个字一行，多了换行展示
+            if(isAbbreviate){
+              if(value.length > 5){
+                return value.substring(0 ,5)+'...';
+              }else{
+                return value;
+              }
+            }else{
+              const totalRow = Math.ceil(value.length / 10);
+              let str = '';
+              for(let i = 0; i < totalRow; i++){
+                if(i < totalRow -1){
+                  str += `${value.substring(10*i, 10*(i+1))}\n`;
+                }else{
+                  str += `${value.substring(10*i, value.length)}`
+                }
+              }
+              return str;
+              }
+          },
+        },
+      },
+      // 纵轴
+      yAxis: yAxis,
+      // 横向滚动条
+      dataZoom: dataZoom ? {...dataZoom,bottom:legend.length > 1 ? 45 : 20} : [],
+      // 数据
+      series: series,
+    };
+  }
+
+  /*
+  根据percentStyle输出规则
+  legends:若设置了该参数，仅针对该参数中包含的图例进行min和max的计算，若不设置，默认全部计算
+  如果纵轴区间为百分数A%~B%，则：
+    1）|A-B| / 区间档数 > 1，纵轴显示的百分数仅保留整数；
+    2）1 > |A-B| / 区间档数 ≥ 0.1，纵轴显示的百分数保留小数点后1位；
+    3）|A-B| / 区间档数 < 0.1，纵轴显示的百分数保留小数点后2位；
+  */
+  setPercentStyle = (legends) => {
+    let yAxisFormat = [];  // 根据规则算出的纵轴样式
+
+    this.props.percentStyle.forEach((item, index) => {
+      if(item == true){
+        // 找出坐标轴上的最大值和最小值
+        let max;
+        let min;
+        // 如果设置了坐标轴的最大值和最小值，则以设置的值进行计算
+        if(this.props.yAxisRange && this.props.yAxisRange[index]){
+          min = this.props.yAxisRange[index][0];
+          max = this.props.yAxisRange[index][1];
+        }else{
+          // 如果未设置坐标轴的最大值和最小值，则自行计算坐标轴的最大值和最小值
+          let yAxisSeries = [];  // 当前Y轴序号的所有数据
+          this.props.series.forEach(data => {
+            if(data.yAxisIndex == index || (index == 0 && data.yAxisIndex == undefined)){
+              if(legends){
+                if(legends.indexOf(data.name) >= 0){
+                  yAxisSeries = yAxisSeries.concat(data.data);
+                }
+              }else{
+                yAxisSeries = yAxisSeries.concat(data.data);
+              }
+            }
+          });
+          yAxisSeries.sort((a,b) => {
+            return a - b;
+          }); // 数组排序
+          if(yAxisSeries.length > 1){
+            min = yAxisSeries[0];
+            max = yAxisSeries[yAxisSeries.length - 1];
+          }
+          if(yAxisSeries.length == 1){
+            min = max = yAxisSeries[0];
+          }
+        }
+
+        if(min == undefined || max == undefined){
+          yAxisFormat.push(undefined);
+        }else{
+          min = min * 100;
+          max = max * 100;
+
+          // 根据最大值和最小值计算纵轴需保留的位数
+          if((max - min) / 5 > 1){
+            yAxisFormat.push( value => parseInt(value * 100) + '%' );
+          }
+          if(((max - min) / 5 >= 0.1) && ((max - min) / 5 < 1)){
+            yAxisFormat.push( value => (value*100).toFixed(1) + '%' );
+          }
+          if((max - min) / 5 < 0.1){
+            yAxisFormat.push( value => (value*100).toFixed(2) + '%' );
+          }
+        }
+      }else{
+        yAxisFormat.push(undefined);
+      }
+    });
+
+    return yAxisFormat;
+  }
+
+  // 响应图例切换事件
+  legendselectchanged = (args) => {
+    let {yAxisFormat, series,percentStyle} = this.props;
+    // 仅针对设置了百分比的图例进行处理
+    if(percentStyle && percentStyle.length > 0){
+      // 根据args.name判断Y轴序号
+      let yNum = [];
+      for(let i = 0; i < series.length; i++){
+        if(args.name === series[i].name){
+          yNum.push(series[i].yAxisIndex === undefined ? 0 : series[i].yAxisIndex);
+          break;
+        }
+      }
+
+      // 如果对应的Y轴未设置percentStyle，则返回
+      if(yNum && yNum.length > 0 && percentStyle[yNum[0]]){
+        // 根据args.selected判断当前Y轴需要纳入统计的name项
+        let names = [];
+        for(let key in args.selected){
+          if(args.selected[key]){
+            let temp = series.find(item => item.name == key);
+            let index = temp.yAxisIndex;
+            if(index === yNum[0] || (yNum[0] == 0 && index == undefined)){
+              names.push(key);
+            } 
+          }
+        }
+        let calPercent = this.setPercentStyle(names);
+        let yAxis = [];
+        
+        for(let i = 0; i < this.yAxisNum.length; i++){
+          let element = {
+            axisLabel: {    // Y轴文本样式
+              formatter: yAxisFormat[i] === undefined ? (calPercent[i] === undefined ? undefined : calPercent[i]) : yAxisFormat[i], // Y轴lable显示格式
+            }
+          }
+          yAxis.push(element);
+        }
+        let instance = this.echarts_react.getEchartsInstance();  // echarts实例
+        instance.setOption({yAxis:yAxis});
+      }
+    }
+  }
+
+  echartsIsInit = false;   // 标记echarts图是否已初始化
+  // reactEcharts初始化后操作
+  initEchartsEvent = e => {
+    if(!e) return;
+
+    this.echartsIsInit = true;   // 标记echarts已初始化完毕
+    this.echarts_react = e;
+    this.echarts_instance = e.getEchartsInstance();  // echarts实例
+
+    const {seriesLabelDataFormat, gridLeft, gridRight, xAxis, showBorder, title,yAxisUnit,series,height,lableRotate,dataZoom} = this.props;
+
+    // 根据echart的宽度，计算每一项可占宽度，从而判断是否要显示文本标签
+    if(seriesLabelDataFormat && seriesLabelDataFormat.length > 0){
+      let seriesNew = [];
+      seriesLabelDataFormat.forEach(() => {
+        let show = (this.echarts_instance.getWidth() - gridLeft - gridRight)/xAxis.length >= this.SERIESLABELWidth ? true : false;
+        seriesNew.push({label:{show:show}});
+      });
+      this.echarts_instance.setOption({series:seriesNew});
+    }
+
+    // 根据当前图例数据量的多少自动设置图形高度
+    if(height === 'auto'){
+      const top = showBorder ? 
+        (title ? (yAxisUnit.length > 0 ? 80 : 60) : (yAxisUnit.length > 0 ? 56 : 36)) :
+        (title ? (yAxisUnit.length > 0 ? 70 : 50) : (yAxisUnit.length > 0 ? 30 : 10));
+      const bottom = lableRotate === 0 ? (dataZoom ? 100 : 50) : (dataZoom ? 120 : 70);
+      const right = gridRight;
+      let numInLine = parseInt((this.echarts_instance.getWidth() - right) / 100);  // 计算一行放几个（默认一个100）
+      let lineNum = Math.ceil(series.length / numInLine);      // 一共有多少行图例
+      let chartBottom = bottom + lineNum * 20;                 // 计算echart距离bottom的距离
+      let chartHeight = top + 200 + chartBottom > 1200 ? 1200 : top + 200 + chartBottom;   // 计算echart高度（默认中间主体高度是200，一行图例占高20，最高高度不得超过1200）
+      
+      this.echarts_instance.setOption({grid:{bottom:chartBottom}});
+      this.setState({chartHeight: chartHeight});
+    }else{
+      this.setState({chartHeight: height});
+    }
+  }
+
+  click = e => {
+    // 抛出点击事件
+    this.props.click(e);
+  }
+  
+  render(){
+    const { series, xAxis, type, width, yAxisFormat, yAxisUnit,percentStyle,gridLeft, gridRight,
+      dataZoom, yAxisRange, showBorder, seriesLabelDataFormat, markArea,barMaxWidth,debtAndProfit } = this.props;
+
+    let legend = [];      // 图例
+    let seriesVals = [];  // series
+    let yAxis = [];       // Y轴
+    let zoom = undefined; // 横向滚动轴
+    let initStatus = series && xAxis; // 标记是否达到初始化状态(true:可以初始化图表，false：还未获取到数据)
+
+    if(initStatus){
+      this.yAxisNum = [];    // Y轴序号
+
+      // 根据传参，自动生成series数据和图例数据
+      seriesVals = series && series.map((item, index) => {
+        const yAxisIndex =  item.yAxisIndex !== undefined ? item.yAxisIndex : 0; // 默认数据Y轴序号为0
+
+        // 搜集Y轴的所有序号
+        if(this.yAxisNum.indexOf(yAxisIndex) < 0){
+          this.yAxisNum.push(yAxisIndex);
+        }
+        // 搜集图例数据
+        legend.push(item.name);
+
+        // 返回series数据
+        let data = {
+          name: item.name,
+          data: item.data,
+          yAxisIndex: yAxisIndex,
+          ...item
+        };
+
+        // 若需要设置区域面积
+        if(markArea){
+          let mark = [];
+          markArea.forEach(element => {
+            mark.push([
+              {
+                xAxis: element.range[0],
+                itemStyle:{color:element.color}
+              }, 
+              {
+                  xAxis: element.range[1]
+              }
+            ])
+          });
+          data.markArea = {
+            data: mark
+          }
+        }
+
+        let labelShow = true;
+        if(this.echartsIsInit && seriesLabelDataFormat && seriesLabelDataFormat.length > 0){
+          labelShow = (this.echarts_instance.getWidth() - gridLeft - gridRight)/xAxis.length >= this.SERIESLABELWidth ? true : false;
+        }
+
+        let echartsType = item.type ? item.type : type; // 图形类型
+        switch(echartsType){
+          case 'bar':   // 柱状图
+          if(debtAndProfit){
+            let newData = [];
+            for(let i = 0; i < item.data.length; i++){
+              let element = item.data[i];
+              newData.push({
+                  value: element,
+                  itemStyle:{
+                      color: element != undefined && element > 0 ? this.debtAndProfitColor[0] : this.debtAndProfitColor[1]
+                  }
+              })
+            }
+            data.data = newData;
+          }
+          data = {
+            ...data,
+            type: 'bar',
+            barMaxWidth: barMaxWidth,  // 默认最大宽度是20，正常情况下自适应
+            label: {
+              show: seriesLabelDataFormat[index] == undefined ? false : labelShow,
+              position: 'top',
+              formatter: seriesLabelDataFormat[index] == undefined ? ()=>'' : seriesLabelDataFormat[index],
+            }
+          };
+            break;
+          case 'area':  // 面积图
+            data = {
+              ...data,
+              type: 'line',
+              areaStyle: {
+                opacity: 0.3,
+              },
+              showSymbol: false
+            };
+            break;
+          case 'point':  // 点状图
+            data = {
+              ...data,
+              type: 'line',
+              symbol: 'circle',
+              symbolSize: 15,
+              lineStyle: {
+                opacity: 0
+              },
+            };
+            break;
+          case 'lineStack':  // 线性堆叠图
+            data = {
+              ...data,
+              type: 'line',
+              stack: '总量',
+              showSymbol: false,
+            };
+            break;
+          case 'areaStack':  // 面积堆叠图
+            data = {
+              ...data,
+              type: 'line',
+              stack: '总量',
+              areaStyle: {},
+              lineStyle:{
+                width: 0,
+              },
+              showSymbol: false
+            };
+            break;
+          case 'barStack':  // 柱状堆叠图
+            data = {
+              ...data,
+              type: 'bar',
+              barMaxWidth: barMaxWidth,  // 默认最大宽度是20，正常情况下自适应
+              stack: '总量',
+              label: {
+                show: seriesLabelDataFormat[index] == undefined ? false : true,
+                position: 'inside',
+                formatter: seriesLabelDataFormat[index] == undefined ? '{c}' : seriesLabelDataFormat[index],
+              }
+            };
+            break;
+          default:   // 默认是line
+            data = {
+              ...data,
+              type: 'line', 
+              showSymbol: false,
+            };
+            break;
+        }
+
+        return data;
+      });
+
+      let calPercent = [];
+      if(percentStyle && percentStyle.length > 0){
+        calPercent = this.setPercentStyle();
+      }
+      
+      // 根据传参，设计Y轴样式
+      for(let i = 0; i < this.yAxisNum.length; i++){
+        let element = {
+          name: yAxisUnit === undefined ? undefined : yAxisUnit[i],  // 坐标轴显示名称
+          type: 'value',
+          nameTextStyle:{   // Y轴名称文本样式
+            color: '#4a4a4a',
+            fontSize: 12,
+          },
+          axisLine: {      // Y轴轴线样式
+            lineStyle: {
+              color: "#DDDDDD"
+            }
+          },
+          axisTick: {      // Y轴间隔小线段样式
+            show: false   
+          },
+          axisLabel: {    // Y轴文本样式
+            color: '#4A4A4A',
+            fontSize: 12,
+            formatter: yAxisFormat[i] === undefined ? (calPercent[i] === undefined ? undefined : calPercent[i]) : yAxisFormat[i], // Y轴lable显示格式
+          },
+          splitNumber: 4,   // 坐标轴的分割段数，需要注意的是这个分割段数只是个预估值，最后实际显示的段数会在这个基础上根据分割后坐标轴刻度显示的易读程度作调整
+          splitLine:{    // Y轴分割线样式
+            show: i===0,  // 仅在左轴添加分割线
+            lineStyle:{
+              type: 'dashed',
+              color: "#ddd"
+            }
+          },
+          min: yAxisRange && yAxisRange.length > 0 && yAxisRange[i] ? yAxisRange[i][0] : undefined,
+          max: yAxisRange && yAxisRange.length > 0 && yAxisRange[i] ? yAxisRange[i][1] : undefined,
+        };
+        
+        yAxis.push(element);
+      }
+
+      // 根据入参设置横向滚动条
+      if(dataZoom){
+        if(typeof dataZoom === 'boolean'){
+          zoom = {
+            start: 0,
+            end: 100,
+          };
+        }else{
+          zoom = {
+            startValue: dataZoom.startValue,
+            endValue: dataZoom.endValue,
+          }
+        }
+      }
+    }
+
+    return (
+      <div style={{ border: showBorder && '1px solid #DDDDDD',width:width }}>
+        <Spin spinning={!initStatus} tip="加载中...">
+          {
+            initStatus ?
+              series.length > 0 &&  xAxis.length > 0 ?
+                <ReactEcharts
+                  option={this.getOption(legend, yAxis, seriesVals, zoom)}
+                  style={{ height:this.state.chartHeight, width: width}}
+                  // 是否不跟之前设置的 option 进行合并，默认为 false，即合并。
+                  notMerge={true} 
+                  onEvents={
+                    {
+                      'legendselectchanged':this.legendselectchanged,
+                      'click': this.click
+                    }
+                  }
+                  ref={this.initEchartsEvent}
+                />
+                :
+                <NoDataC/>
+                // <Empty description='暂无数据' style={{height:this.state.chartHeight,display:'flex',justifyContent:'center',alignItems:'center',flexDirection:'column'}}></Empty>
+              : 
+              <div style={{height:this.state.chartHeight, width: width}}></div>
+          }
+        </Spin>
+      </div>
+      
+    );
+  }
+}
+
+/* 
+备注：
+  当xAxis和series值为null或undefined时，显示loading状态
+  当xAxis和series值为空数组[]时，显示“暂无数据”
+  当xAxis和series值为有值的数组时，正常实现图形
+*/
+XYAxisChartsC.propsTypes = {
+    xAxis:PropTypes.array,             // 横轴数据（字符串数组）
+    series:PropTypes.array,            // 纵轴数据（[{name:'',data:[], yAxisIndex:'默认是0',type:'默认是type中定义的类型'},...]）
+    type:PropTypes.oneOf([             // 图表类型（优先级低于series中定义的type）
+      'line',     // 折线图
+      'bar',      // 柱状图
+      'area',     // 面积图
+      'point',    // 点状图（不是散点图，是折线图去掉线条，只留点）
+      'lineStack',// 线性堆叠图
+      'areaStack',// 面积堆叠图
+      'barStack', // 柱状堆叠图
+    ]), 
+    height:PropTypes.oneOfType([       // 图表高度（百分比、数值、auto(自动根据图例数量计算高度)）        
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    width:PropTypes.oneOfType([        // 图表宽度（百分比或数值）          
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    dataZoom:PropTypes.oneOfType([     // 是否有横向滚动轴（{startValue: 0,endValue: 5}）  
+      PropTypes.bool,
+      PropTypes.object,
+    ]),
+    colors:PropTypes.array,            // 图表颜色
+    title:PropTypes.string,            // 标题
+    toolTipFormat:PropTypes.func,      // 提示框内容显示格式处理
+    toolTipDataFormat: PropTypes.array,// 数据在提示框中显示的格式（与所在纵轴位置一致，从左向右，每一项用func表示，如[value=>parseInt(value)}, value=>value+'%',...]，，没有的项用空位表示）
+    yAxisUnit: PropTypes.array,        // 纵轴上的单位（从左向右，每一项用字符串数据表示，没有的项用空位表示）
+    yAxisFormat:PropTypes.array,       // 纵轴数据显示格式处理（从左向右，每一项用func表示，如[value=>parseInt(value)}, value=>value+'%',...]，，没有的项用空位表示）
+    boundaryGap: PropTypes.bool,       // 坐标轴两边留白策略
+    yAxisRange: PropTypes.array,       // 纵轴数据展示的min与max（从左向右，每一项用数组表示，如[[min,max],[min,max],...]，，没有的项用空位表示）
+    lableRotate: PropTypes.number,     // 横轴字体旋转角度
+    isAbbreviate: PropTypes.bool,      // 横轴是否缩略展示（仅展示前5个字）
+    showBorder: PropTypes.bool,        // 是否显示图形外层边框
+    hasYAxisPosi: PropTypes.bool,      // 标记是否在图例中特意标明对应的数据是左轴还是右轴
+    gridLeft: PropTypes.number,        // 左轴距离左侧的距离
+    gridRight: PropTypes.number,       // 右轴距离右侧的距离
+    seriesLabelDataFormat: PropTypes.array, // 图形上的文本标签格式，若设置则展示标签，若不设置，则不显示标签([params=>params.data,,params=>params.data+'%',...])，默认数据量超过15条不展示
+    percentStyle: PropTypes.array,     // 纵轴上若按百分比展示，有一套小数点位数的规则(对需要按百分比规则展示的列号，对应的数组位置处设置true，不需要设置的空置或设false)
+                                       // 该设置优先级低于yAxisFormat的优先级
+    markArea: PropTypes.array,         // 区域样式设置[{range:[],color:''},{range:[],color:''},...]
+    barMaxWidth: PropTypes.number,     // 仅type为bar或barstack时有效，设置柱状图宽度
+    legentAbbreviate: PropTypes.bool,  // 图例是否缩略展示（仅展示前5个字）（优先级高于hasYAxisPosi）
+    debtAndProfit:PropTypes.bool,      // 收益&负债类型的样式（红绿）
+    click: PropTypes.func,             // 点击事件
+};
+
+export default XYAxisChartsC;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * 横向柱状图
+ * XYHorizontalChartsC (reactCharts)
+ * @author zxy
+ * @date  2020-09-17
+ */
+import React from 'react';
+import PropTypes from 'prop-types';
+import ReactEcharts from "echarts-for-react";
+import {Spin } from 'antd';
+import { NoDataC } from '../../other';
+import Color from '../../../css/colors';
+import _ from 'lodash';
+
+class XYHorizontalChartsC extends React.Component{
+  // 入参默认值设置
+  static defaultProps = {
+    yAxis: undefined,
+    series: undefined,
+    type: 'normal',          // 默认普通的横向柱状图
+    height: '100%',          // 图形高度默认为父节点的100%
+    width: '100%',           // 图形宽度默认为父节点的100%
+    colors: Color.echart,    // 默认系统色
+    title: '',               // 标题默认为空
+    yAxisUnit: [],           // 默认纵轴上无单位（从左向右，每一项用字符串数据表示）
+    percentStyle: false,     // 默认不按百分比样式展示
+    separator: false,        // 分隔符
+    showBorder: false,       // 默认不展示外边框
+    toolTipFormat: undefined,// 默认按自定义的提示信息样式展示
+    toolTipDataFormat: [],   // 默认提示信息中的数据无任何
+    seriesLabelDataFormat:[],// 默认不展示图形上的文本标签
+    gridLeft: 20,           // 默认左轴距离左侧距离为115
+    gridRight: 60,           // 默认右轴距离右侧距离为60
+    isShowSeriesLabel: true, // 默认显示图形上的文本格式
+    showLegend: true,        // 默认展示图例
+    yAxisPosition: 'left',   // 纵轴位置默认在左侧
+    onRef: () => {},         // 本组件的引用
+    showTooltipLabel: true,  // 默认展示提示信息在横轴和纵轴上的提示
+    containLabel: true,      // 默认grid区域是包含坐标轴的刻度标签
+  }
+
+  debtAndProfitColor = Color.debtAndProfit.background;// type为收益负债模式时，固定显示的颜色
+
+  componentDidMount() {
+    // 父组件对本组件的引用
+    this.props.onRef(this);
+  }
+
+  shouldComponentUpdate(nextProps){
+    let props = this.props ? JSON.stringify(this.props) : '';
+    let propsN = nextProps ? JSON.stringify(nextProps) : '';
+    if(props === propsN){
+      return false;
+    }else{
+      return true;
+    }
+  }
+
+  // 返回option
+  getOption = (legend, series,paddingHeight) => {
+      const {colors, title, showBorder,gridLeft,gridRight, yAxis, toolTipFormat,toolTipDataFormat, yAxisUnit,percentStyle,separator,showLegend,yAxisPosition,showTooltipLabel,containLabel} = this.props;
+      return {
+        // 调色盘颜色列表
+        color: colors,
+        // 主标题和副标题
+        title: {
+            show: title ? true : false,
+            left:'20',
+            top: showBorder ? 10 : 0,
+            text: title,
+            textStyle: {
+                color: '#333333',
+                fontSize: 14,
+                fontWeight: 'normal',
+                lineHeight:20,
+            }
+        },
+        // 鼠标移动上去提示信息
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'cross',  // tooltip展示十字型
+              crossStyle: {
+                  color: '#999999'
+              },
+              label: {
+                backgroundColor: '#666666',
+                color: 'rgba(255,255,255,1)',
+                padding: [7,7,5,7],
+                show: showTooltipLabel
+              },
+            },
+            formatter: toolTipFormat ? toolTipFormat : (params) => {
+              let str = '<div style="color:#FFFFFF">';
+              str += `<div>${params[0].name}</div>`;
+              
+              params.map(item => {
+                let value = item.value;
+                if(percentStyle){
+                  value = typeof value === 'number' && !isNaN(value) ? parseInt(Math.round(value*10000))/100 + '%' : '--';
+                }
+                let yAxisIndex = -1;
+                series.forEach(element => {
+                  if(element.name === item.seriesName){
+                    yAxisIndex = element.yAxisIndex;
+                  }
+                });
+                if(toolTipDataFormat[yAxisIndex]){
+                  value = toolTipDataFormat[yAxisIndex](value);
+                }
+                str += `<div style="display:flex;align-items:center">
+                          <div style="border:1px solid rgba(255,255,255,1);width:10px;height:10px;border-radius:50%;background-color:${item.color};margin-right:10px"></div> 
+                          ${item.seriesName}： ${value}
+                        </div>`
+              })
+              str += '</div>'
+              return str;
+            },
+            padding: [10,15,10,15],
+            confine: true,  // 是否将 tooltip 框限制在图表的区域内
+        },
+        // 图例
+        legend: {
+            data: legend,
+            show: showLegend ? legend.length > 1 ? true : false : false,
+            bottom: 5,
+            right: 40,
+            textStyle: {
+              color:'#666666',
+              fontSize:12,
+            },
+            itemWidth: 14,
+            itemHeight: 14,
+            borderRadius: [0, 0, 0, 0],
+        },
+        // 直角坐标系内绘图网格
+        grid: {
+            left: gridLeft,
+            right: gridRight,
+            top: showBorder ? 
+            (title ? (yAxisUnit.length > 0 ? 80 : 60) : (yAxisUnit.length > 0 ? 56 : 36)) :
+            (title ? (yAxisUnit.length > 0 ? 70 : 50) : (yAxisUnit.length > 0 ? 30 : 10)), // 根据是否有边框、title、坐标轴显示名称动态调整
+            bottom: showLegend ? legend.length > 1 ? 60 : 40 : 40,
+            containLabel: containLabel
+        },
+        // 横轴
+        xAxis: {
+          nameTextStyle:{   // Y轴名称文本样式
+            color: '#4a4a4a',
+            fontSize: 12,
+          },
+            type: 'value',
+            axisLine: {
+              lineStyle: {
+                color: "#DDDDDD"
+              }
+            },
+            axisTick: {
+              show: false
+            },
+            axisLabel:{
+              color: '#4A4A4A',
+              margin: 12,   // 与横轴的距离
+              fontSize: 12,
+              formatter: (value, index) => {
+                if(separator){
+                   return this.handleNumberToString(value)
+                }
+                return percentStyle ? parseInt(value*10000)/100 + '%' : value;
+              }
+            },
+        },
+        // 纵轴
+        yAxis: {
+            name: yAxisUnit[0] ? yAxisUnit[0] : '',
+            nameLocation:'center',
+            nameRotate:0,
+            nameTextStyle:{   // Y轴名称文本样式
+              color: '#4a4a4a',
+              fontSize: 12,
+              padding:[0,-50,paddingHeight,0]
+            },
+            type: 'category',
+            data: yAxis,
+            position: yAxisPosition,
+            boundaryGap: true,
+            axisLine:{
+                show: false
+            },
+            axisTick:{
+                show:false
+            },
+            axisLabel:{
+                color:'#4A4A4A',
+                fontSize:12,
+                interval: 0,  // 设置成 0 强制显示所有标签。
+                formatter:(value, index) => {
+                  if(value.includes("*")){
+                    let arr = value.split('*');
+                    let res = `{red|*} ${arr[1]}`
+                    return res;
+                  }
+                  return value;
+                    // if(value.length > 8){
+                    //     return value.substring(0 ,8)+'...';
+                    //   }else{
+                    //     return value;
+                    //   }
+                },
+                rich: {
+                  red: {
+                    color: '#D0021B',
+                  }
+                },
+            },
+            splitLine:{
+                lineStyle:{
+                    color:'#EEEEEE',
+                    width:1,
+                }
+            }
+        },
+        series: series
+      }
+  }
+  
+
+  handleNumberToString=(item)=>{
+    if(item || item === 0){
+        item = (Number(item)).toFixed(0);
+        let number_arr = (item+'').split('.')
+        if(Number(number_arr[1])){
+            return Number(number_arr[0]).toLocaleString() + '.' + number_arr[1]
+        }else{
+            return Number(number_arr[0]).toLocaleString()
+        }
+    }else{
+        return '-'
+    }
+  }
+
+  // 初始化图形
+  initEchartsEvent = e => {
+    if(!e) return;
+
+    this.setState({
+      instance: e.getEchartsInstance()  // echarts实例
+    })
+  }
+
+  // （供外部调用）设置图例的选中与取消选中
+  // type：select  unselect
+  // name: 图例的名称
+  setLegend = (type, name) => {
+    let operaType = 'legendSelect';
+    if(type == 'unselect'){
+      operaType = 'legendUnSelect';
+    }
+    this.state.instance.dispatchAction({
+      type: operaType,
+      name: name
+    })
+  }
+
+  render(){
+    const { series, yAxis, type, height, width, showBorder, percentStyle,isShowSeriesLabel,yAxisUnit,title,seriesLabelDataFormat,showLegend} = this.props;
+    let legend = [];      // 图例
+    let seriesVals = [];  // series
+    let initStatus = series && yAxis; // 标记是否达到初始化状态(true:可以初始化图表，false：还未获取到数据)
+    let chartHeight = height === 'auto' ? 200 : height;  // 根据当前数据量的多少自动设置图形高度
+    
+    if(initStatus){
+        seriesVals = series.map((item,index) => {
+          const yAxisIndex =  item.yAxisIndex !== undefined ? item.yAxisIndex : 0; // 默认数据Y轴序号为0
+            legend.push(item.name);
+            let data = [];
+            if(type === 'normal' || type === 'stack'){
+                data = item.data;
+            }
+            if(type === 'debtAndProfit'){
+                for(let i = 0; i < item.data.length; i++){
+                    let element = item.data[i];
+                    data.push({
+                        value: element,
+                        itemStyle:{
+                            color: element != undefined && element > 0 ? this.debtAndProfitColor[0] : this.debtAndProfitColor[1]
+                        }
+                    })
+                }
+            }
+         
+            return {
+                name: item.name,
+                type: 'bar',
+                barMaxWidth: 20,
+                yAxisIndex,
+                label:{
+                    show: type === 'stack' ? false : isShowSeriesLabel,
+                    position: 'right',
+                    color:'#4A4A4A',
+                    fontSize:12,
+                    formatter:seriesLabelDataFormat[index] == undefined ? params => {
+                      if(percentStyle){
+                          let value = params.value;
+                          // parseInt(value*10000)/100 解决js中浮点数的精度问题
+                          return typeof value === 'number' && !isNaN(value) ? parseInt(value*10000)/100 + '%' : '--';
+                      }
+                  }: seriesLabelDataFormat[index],
+                },
+                data: data,
+                stack: type === 'stack' ? '总量' : undefined,
+            }
+        });
+
+        // 根据当前数据量的多少自动设置图形高度
+        if(height === 'auto'){
+          const top = showBorder ? 
+            (title ? (yAxisUnit.length > 0 ? 80 : 60) : (yAxisUnit.length > 0 ? 56 : 36)) :
+            (title ? (yAxisUnit.length > 0 ? 70 : 50) : (yAxisUnit.length > 0 ? 30 : 10));
+          const bottom = showLegend ? legend.length > 1 ? 60 : 40 : 40;
+          chartHeight = yAxis.length > 0 ? 
+            (top + bottom + yAxis.length * 25 + 30 > 1200 ? 1200 : top + bottom + yAxis.length * 25 + 30) 
+            : 
+            200;
+        }
+    }
+    let paddingHeight ;
+    if(yAxis && yAxis.length>0){
+      if(yAxis.length % 2 === 0){
+        paddingHeight = (Math.ceil(yAxis.length/2))*50 + 30
+      }else{
+        paddingHeight = (Math.ceil((yAxis.length)/2))*50
+      }
+    }
+    return (
+      <div style={{ border: showBorder && '1px solid #DDDDDD' }}>
+        <Spin spinning={!initStatus} tip="加载中...">
+          {
+            initStatus ?
+              series.length > 0 &&  yAxis.length > 0 ?
+                <ReactEcharts
+                  option={this.getOption(legend, seriesVals,paddingHeight)}
+                  style={{ height:chartHeight, width: width}}
+                  // 是否不跟之前设置的 option 进行合并，默认为 false，即合并。
+                  notMerge={true} 
+                  ref={this.initEchartsEvent}
+                />
+                :
+                <NoDataC/>
+                // <Empty description='暂无数据' style={{height:chartHeight,display:'flex',justifyContent:'center',alignItems:'center',flexDirection:'column'}}></Empty>
+              : 
+              <div style={{height:chartHeight, width: width}}></div>
+          }
+        </Spin>
+      </div>
+    );
+  }
+}
+
+/* 
+备注：
+  当yAxis和series值为null或undefined时，显示loading状态
+  当yAxis和series值为空数组[]时，显示“暂无数据”
+  当yAxis和series值为有值的数组时，正常实现图形
+*/
+XYHorizontalChartsC.propTypes = {
+    yAxis:PropTypes.array,             // 纵轴数据（字符串数组）
+    series:PropTypes.array,            // 横向数据（[{name:'',data:[]},...]）
+    type:PropTypes.oneOf([             // 图表类型
+      'normal',          // 普通的横向柱状图
+      'debtAndProfit',   // 收益&负债类型的样式（红绿）
+      'stack',           // 堆叠图
+    ]), 
+    height:PropTypes.oneOfType([       // 图表高度（百分比、数值、auto（设置auto，则会根据当前数据量的多少自动设置图形高度））        
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    width:PropTypes.oneOfType([        // 图表宽度（百分比或数值）          
+      PropTypes.string,
+      PropTypes.number,
+    ]),
+    colors:PropTypes.array,            // 图表颜色
+    title:PropTypes.string,            // 标题
+    toolTipFormat:PropTypes.func,      // 提示框内容显示格式处理
+    toolTipDataFormat: PropTypes.array,// 数据在提示框中显示的格式（与所在纵轴位置一致，从左向右，每一项用func表示，如[value=>parseInt(value)}, value=>value+'%',...]，，没有的项用空位表示）
+    seriesLabelDataFormat: PropTypes.array, // 图形上的文本标签格式，若设置则展示标签，若不设置，则不显示标签([params=>params.data,,params=>params.data+'%',...])，默认数据量超过15条不展示
+    yAxisUnit: PropTypes.array,        // 纵轴上的单位（从左向右，每一项用字符串数据表示，没有的项用空位表示）
+    percentStyle: PropTypes.bool,      // 数据是否按百分比展示
+    separator: PropTypes.bool,         // 分隔符
+    showBorder: PropTypes.bool,        // 是否显示图形外层边框
+    gridLeft: PropTypes.number,        // 左轴距离左侧距离
+    gridRight: PropTypes.number,       // 右轴距离右侧距离
+    isShowSeriesLabel: PropTypes.bool, // 是否显示图形上的文本
+    showLegend: PropTypes.bool,        // 是否展示图例
+    yAxisPosition: PropTypes.string,   // 设置纵轴位置（left  right）
+    onRef: PropTypes.func,             // 本组件的引用（可用来父组件调用内部方法）
+    showTooltipLabel: PropTypes.bool,  // 是否展示提示信息的label 
+    containLabel: PropTypes.bool,      // grid区域是否包含坐标轴的刻度标签
+};
+
+export default XYHorizontalChartsC;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import XYAxisChartsC from './xyAxisCharts';
+import XYHorizontalChartsC from './xyHorizontalCharts';
 
 export {
-    // 查询组件
-    AdvancedSearch,
-    DATA_ENTRY,
-    // 业务组件
-    ProductGroupTreeC,
-    ProductListC,
-    ProductGroupSepC,
-    SecuritiesCodeC,
-    codeType,
-    FormItemLayout,
-    // 按钮
-    PrimaryC,
-    PrimaryGhostC,
-    // 模态框
-    ModalC,
-    // 标题
-    FirstHeaderC,
-    SecondHeaderC,
-    // 快速查询按钮
-    QuickQueryC,
-    // echarts图
     XYAxisChartsC,
-    XYHorizontalChartsC,
-    // Form
-    ComplexDateC,
-    RangeDateC,
-    SelectC,
-    // 表格
-    TableC,
-    // 未查询
-    NoQueryC,
-    // 无数据
-    NoDataC
-}
-
-
-
-
-
-
-
-import PrimaryC from './primary';
-import PrimaryGhostC from './primaryGhost';
-// import BGroupC from './group'
-
-export { 
-    PrimaryC, 
-    PrimaryGhostC, 
-    // BGroupC
-} 
-
-
-/**
- * 主要按钮
- * by zhangxinyue
- * create 2020-08-24
- */
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Button, Icon,Tooltip } from 'antd';
-
-class PrimaryC extends React.PureComponent{
-  // props默认值
-  static defaultProps = {
-    loading: false,     // 默认不loading
-    title: '',          // 默认按钮无名称
-    htmlType: 'button', // 默认不设置
-    disabled: false,    // 默认有效状态
-    onClick: ()=>{},    // 默认无点击事件
-    helper: undefined,  // 帮助信息
-    icon: undefined,    // 默认按钮中不加图标
-    style: undefined,   // 样式
-  };
-
-  constructor(props){
-      super(props);
-  }
-
-  render(){
-    const { title, loading, disabled, htmlType, onClick, style, helper, icon} = this.props;
-
-    return (
-        <div style={{...style, display:'inline-block'}}>
-          { helper ? 
-            <Tooltip title={helper}>
-              <Button type="primary" htmlType={htmlType} disabled={disabled} loading={loading} onClick={onClick}>
-                {title}
-                <Icon type="question-circle-o" />
-              </Button>
-            </Tooltip>
-            :
-            <Button type="primary" htmlType={htmlType} disabled={disabled} loading={loading} onClick={onClick}>
-              {title}
-              {icon && <Icon type={icon} />}
-            </Button>
-            }
-        </div>
-    );
-  }
-}
-
-// props类型
-PrimaryC.propsTypes = {
-    loading: PropTypes.bool,     // 标记是否是loading状态
-    title: PropTypes.string,     // 按钮名称
-    htmlType: PropTypes.oneOf(   // 配合form表单的onSubmit事件，可设置值为“submit”
-        ["submit","button","reset"]
-    ),  
-    disabled: PropTypes.bool,    // 标记是否是失效状态
-    onClick: PropTypes.func,     // 按钮点击事件	
-    style: PropTypes.object,     // 样式
-    helper: PropTypes.string,    // 帮助信息
-    icon: PropTypes.string,      // 按钮中加图标(图标名称)
+    XYHorizontalChartsC
 };
 
-export default PrimaryC;
 
 
 
-
-
-
-
-/**
- * 辅助按钮
- * by zhangxinyue
- * create 2020-08-24
- */
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Button, Icon,Tooltip } from 'antd';
-
-class PrimaryGhostC extends React.PureComponent{
-  // props默认值
-  static defaultProps = {
-    loading: false,     // 默认不loading
-    title: '',          // 默认按钮无名称
-    htmlType: 'button', // 默认不设置
-    disabled: false,    // 默认有效状态
-    onClick: ()=>{},    // 默认无点击事件
-    helper: undefined,  // 帮助信息
-    icon: undefined,    // 默认按钮中不加图标
-    style: undefined,   // 样式
-  };
-
-  constructor(props){
-      super(props);
-  }
-
-  render(){
-    const { title, loading, disabled, htmlType,onClick,style, helper, icon} = this.props;
-
-    return (
-    <div style={{...style, display:'inline-block'}}>
-        { helper ? 
-          <Tooltip title={helper}>
-            <Button type="primary" ghost htmlType={htmlType} disabled={disabled} loading={loading} onClick={onClick}>
-              {title}
-              <Icon type="question-circle-o" />
-            </Button>
-          </Tooltip>
-          :
-          <Button type="primary" ghost htmlType={htmlType} disabled={disabled} loading={loading} onClick={onClick}>
-            {title}
-            {icon && <Icon type={icon} />}
-          </Button>
-        }
-    </div>
-    );
-  }
-}
-
-// props类型
-PrimaryGhostC.propsTypes = {
-    loading: PropTypes.bool,     // 标记是否是loading状态
-    title: PropTypes.string,     // 按钮名称
-    htmlType: PropTypes.oneOf(   // 配合form表单的onSubmit事件，可设置值为“submit”
-        ["submit","button","reset"]
-    ),  
-    disabled: PropTypes.bool,    // 标记是否是失效状态
-    onClick: PropTypes.func,     // 按钮点击事件	
-    style: PropTypes.object,     // 样式
-    helper: PropTypes.string,    // 帮助信息
-    icon: PropTypes.string,      // 按钮中加图标(图标名称)
-};
-
-export default PrimaryGhostC;
