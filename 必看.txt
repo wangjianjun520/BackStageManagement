@@ -1,2 +1,163 @@
-const models = require.context('.',true,/.js$/);
-export default models.keys().filter(item=>item !== './index.js').map(item=>models(item))
+import api from '../../api';
+import { message } from 'antd';
+import { forEach } from 'lodash';
+
+export default {
+    namespace: 'forecast', //现金流预测
+    state: {
+      selectData:{}
+    },
+    effects: {
+               
+      //净现金流（柱状图）
+    *netCash({ payload, callback }, { call, put, select }) {
+      //假数据
+      // let firstdata = {
+      //   xAxis :['2020-01-01','2020-01-02','2020-01-03','2020-01-04','2020-01-05','2020-01-06',
+      //   '2020-01-01','2020-01-02','2020-01-03','2020-01-04','2020-01-05','2020-01-06',
+      //   '2020-01-01','2020-01-02','2020-01-03','2020-01-04','2020-01-05','2020-01-06'],
+      //   series : [
+      //     {
+      //     name:'净现金流',
+      //     data:[-3,0.3,0.7,1.5,3.2,4.5,0.14,0.3,0.7,1.5,3.2,4.5,0.14,0.3,0.7,1.5,3.2,4.5]
+      //     }
+      //    ]
+      // }
+
+      // setTimeout(()=>{
+      //   callback(firstdata)
+      // }, 3000)
+
+      const res = yield call(api.forecast.netCash, payload);
+        if(res && res.code == 0){ 
+          callback(res.data)             
+        }else{
+          message.error(res.msg ||'查询净现金流失败!')
+        }
+      },
+
+
+
+
+      //频率统计值（表格）  
+    *frequencyCount({ payload, callback }, { call, put, select }) {
+
+      // const columns = [
+      //   { title: '日期区间', key: 'name' },
+      //   { title: '现金流流入', key: 'platform',type:'money' },
+      //   { title: '现金流流出', key: 'version' ,type:'money'},
+      //   { title: '净现金流', key: 'upgradeNum',type:'number' },
+      // ];
+
+      // const data = [
+      //     {key:1, name: '未来一天', class: '一班', platform: 12, version: 100, upgradeNum:10000 },
+      //     {key:2, name: '未来一周', class: '二班', platform: 12, version: 95, upgradeNum:20000 },
+      //     {key:3, name: '未来两周', class: '三班', platform: 12, version: 98, upgradeNum:30000 },
+      //     {key:4, name: '未来一月', class: '二班', platform: 12, version: 95, upgradeNum:20000 },
+      //     {key:5, name: '未来三月', class: '三班', platform: 12, version: 98, upgradeNum:30000 },
+      // ]
+      
+      // let firstdata = {
+      //   columns:[
+      //     { title: '日期区间', key: 'name' },
+      //     { title: '现金流流入', key: 'platform',type:'money' },
+      //     { title: '现金流流出', key: 'version' ,type:'money'},
+      //     { title: '净现金流', key: 'upgradeNum',type:'number' },
+      //   ],
+      //   dataSource:[
+      //     {key:1, name: '未来一天', class: '一班', platform: 12, version: 100, upgradeNum:10000 },
+      //     {key:2, name: '未来一周', class: '二班', platform: 12, version: 95, upgradeNum:20000 },
+      //     {key:3, name: '未来两周', class: '三班', platform: 12, version: 98, upgradeNum:30000 },
+      //     {key:4, name: '未来一月', class: '二班', platform: 12, version: 95, upgradeNum:20000 },
+      //     {key:5, name: '未来三月', class: '三班', platform: 12, version: 98, upgradeNum:30000 },
+      //   ]       
+      // }
+
+      // setTimeout(()=>{
+      //   callback(firstdata)
+      // }, 3000)
+
+      const res = yield call(api.forecast.frequencyCount, payload);
+      if(res && res.code == 0){
+        callback(res.data)                          
+      }else{
+        message.error(res.msg ||'查询频率统计值失败!')
+       }
+      },
+
+
+
+
+
+    //现金流明细（表格）  
+    *cashFlowDetails({ payload, callback }, { call, put, select }) {
+
+      // const columns = [
+      //   { title: 'Name', key: 'name' },
+      //   { title: '价格', key: 'platform',type:'money' },
+      //   { title: 'Version', key: 'version' },
+      //   { title: '数值', key: 'upgradeNum',type:'number' },
+      //   { title: 'Creator', key: 'creator' },
+      //   { title: 'Date', key: 'createdAt' }
+      // ];
+
+      // const data = [];
+      //   for (let i = 0; i < 100; ++i) {
+      //     data.push({
+      //       key: i,
+      //       name: 'Screem' + i,
+      //       platform: 12345788.12,
+      //       version: '10.3.4.5654',
+      //       upgradeNum: 5698.23,
+      //       creator: 'Jack',
+      //       createdAt: '2014-12-24 23:12:00',
+      //     });
+      //   } 
+
+
+      //   const pageInfo = {
+      //     total:100,
+      //     currentPage:1,
+      //     numInPage:20
+      //   }
+
+      //   let firstdata = {columns:columns,dataSource:data,pageInfo:pageInfo}
+
+      //   setTimeout(()=>{
+      //     callback(firstdata)
+      //   }, 3000)
+
+        const res = yield call(api.forecast.cashFlowDetails, payload);
+        if(res && res.code == 0){
+          callback(res.data)                        
+        }else{
+          message.error(res.msg ||'查询现金流明细失败!')
+        }
+      },
+          
+    //下拉查询
+    *findSelect({ payload ,callback }, { call, put }) {
+
+        const response = yield call(api.getDictionary, payload);
+         console.log(response)
+        if (response) {
+          yield put({
+            type: 'save',
+            payload: {
+              selectData: response,
+            },
+          });
+
+        } else {
+          message.error('查询失败');
+        }
+      },
+     },
+
+    reducers: {
+        save(state, {payload}) {
+          return {...state, ...payload};
+        },
+      },
+};
+em))
