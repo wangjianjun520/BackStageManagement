@@ -1,162 +1,301 @@
-import api from '../../api';
-import { message } from 'antd';
-import { forEach } from 'lodash';
+import config from '../../utils/config';
+import apiCreator from '../../utils/apiCreator';
 
-export default {
-    namespace: 'forecast', //现金流预测
-    state: {
-      selectData:{}
-    },
-    effects: {
-               
-      //净现金流（柱状图）
-    *netCash({ payload, callback }, { call, put, select }) {
-      //假数据
-      // let firstdata = {
-      //   xAxis :['2020-01-01','2020-01-02','2020-01-03','2020-01-04','2020-01-05','2020-01-06',
-      //   '2020-01-01','2020-01-02','2020-01-03','2020-01-04','2020-01-05','2020-01-06',
-      //   '2020-01-01','2020-01-02','2020-01-03','2020-01-04','2020-01-05','2020-01-06'],
-      //   series : [
-      //     {
-      //     name:'净现金流',
-      //     data:[-3,0.3,0.7,1.5,3.2,4.5,0.14,0.3,0.7,1.5,3.2,4.5,0.14,0.3,0.7,1.5,3.2,4.5]
-      //     }
-      //    ]
-      // }
+const api = apiCreator();
 
-      // setTimeout(()=>{
-      //   callback(firstdata)
-      // }, 3000)
-
-      const res = yield call(api.forecast.netCash, payload);
-        if(res && res.code == 0){ 
-          callback(res.data)             
-        }else{
-          message.error(res.msg ||'查询净现金流失败!')
-        }
-      },
-
-
-
-
-      //频率统计值（表格）  
-    *frequencyCount({ payload, callback }, { call, put, select }) {
-
-      // const columns = [
-      //   { title: '日期区间', key: 'name' },
-      //   { title: '现金流流入', key: 'platform',type:'money' },
-      //   { title: '现金流流出', key: 'version' ,type:'money'},
-      //   { title: '净现金流', key: 'upgradeNum',type:'number' },
-      // ];
-
-      // const data = [
-      //     {key:1, name: '未来一天', class: '一班', platform: 12, version: 100, upgradeNum:10000 },
-      //     {key:2, name: '未来一周', class: '二班', platform: 12, version: 95, upgradeNum:20000 },
-      //     {key:3, name: '未来两周', class: '三班', platform: 12, version: 98, upgradeNum:30000 },
-      //     {key:4, name: '未来一月', class: '二班', platform: 12, version: 95, upgradeNum:20000 },
-      //     {key:5, name: '未来三月', class: '三班', platform: 12, version: 98, upgradeNum:30000 },
-      // ]
-      
-      // let firstdata = {
-      //   columns:[
-      //     { title: '日期区间', key: 'name' },
-      //     { title: '现金流流入', key: 'platform',type:'money' },
-      //     { title: '现金流流出', key: 'version' ,type:'money'},
-      //     { title: '净现金流', key: 'upgradeNum',type:'number' },
-      //   ],
-      //   dataSource:[
-      //     {key:1, name: '未来一天', class: '一班', platform: 12, version: 100, upgradeNum:10000 },
-      //     {key:2, name: '未来一周', class: '二班', platform: 12, version: 95, upgradeNum:20000 },
-      //     {key:3, name: '未来两周', class: '三班', platform: 12, version: 98, upgradeNum:30000 },
-      //     {key:4, name: '未来一月', class: '二班', platform: 12, version: 95, upgradeNum:20000 },
-      //     {key:5, name: '未来三月', class: '三班', platform: 12, version: 98, upgradeNum:30000 },
-      //   ]       
-      // }
-
-      // setTimeout(()=>{
-      //   callback(firstdata)
-      // }, 3000)
-
-      const res = yield call(api.forecast.frequencyCount, payload);
-      if(res && res.code == 0){
-        callback(res.data)                          
-      }else{
-        message.error(res.msg ||'查询频率统计值失败!')
-       }
-      },
+export default  {
+      //频率统计值（柱状图）
+      netCash:query =>api.post(`${config.interfaces.type1}cashFlow/queryForCashFlowHistogram`,query),                                                                            
+      //频率统计值（表格）
+      frequencyCount: query =>api.post(`${config.interfaces.type1}cashFlow/queryTotalList`,query),
+      //现金流明细（表格）
+      cashFlowDetails: query =>api.post(`${config.interfaces.type1}cashFlow/queryCashFlowList`,query),     
+}
 
 
 
 
 
-    //现金流明细（表格）  
-    *cashFlowDetails({ payload, callback }, { call, put, select }) {
 
-      // const columns = [
-      //   { title: 'Name', key: 'name' },
-      //   { title: '价格', key: 'platform',type:'money' },
-      //   { title: 'Version', key: 'version' },
-      //   { title: '数值', key: 'upgradeNum',type:'number' },
-      //   { title: 'Creator', key: 'creator' },
-      //   { title: 'Date', key: 'createdAt' }
-      // ];
+/**
+ * @file api/index.js
+ * 项目相关的所有接口定义，接口按模块分文件组织，并在/api/index.js中汇总
+ * @author maoquan(maoquan@htsc.com)
+ */
 
-      // const data = [];
-      //   for (let i = 0; i < 100; ++i) {
-      //     data.push({
-      //       key: i,
-      //       name: 'Screem' + i,
-      //       platform: 12345788.12,
-      //       version: '10.3.4.5654',
-      //       upgradeNum: 5698.23,
-      //       creator: 'Jack',
-      //       createdAt: '2014-12-24 23:12:00',
-      //     });
-      //   } 
+import apiCreator from '../utils/apiCreator';
+import globalAPI from './global';
+import bondBaseInfo from'./marketAnalysis/bondBaseInfo';
+import limitAlarmquery from'./limitManagement/limitAlarmquery';
 
+import counterpartyInformation from'./counterpartyManagement/counterpartyInformation';
+import personnelManagement from'./counterpartyManagement/personnelManagement';
+import creditSetting from'./counterpartyManagement/creditSetting';
+import definitionAPI from'./securityMnt/couponPoolDefinition';
+import poolQueryAPI from './securityMnt/couponPoolQuery';
+import profitAndLossAPI from './profitAndLossAnalysis/profitAndLossAnalysis';
+import MonitoringAPI from './limitMonitoring/LimitMonitoring';
+import basicEventAPI from './marketAnalysis/basicEvent';
+import forecast from './cashManage/forecast';
+import backtracke from './cashManage/backtracke';
 
-      //   const pageInfo = {
-      //     total:100,
-      //     currentPage:1,
-      //     numInPage:20
-      //   }
+const api = apiCreator();
+const global = globalAPI(api);
+const definition = definitionAPI(api)
+const poolQuery = poolQueryAPI(api)
+const profitAndLoss = profitAndLossAPI(api)
+const monitoring = MonitoringAPI(api)
+const basicEvent = basicEventAPI(api)
 
-      //   let firstdata = {columns:columns,dataSource:data,pageInfo:pageInfo}
-
-      //   setTimeout(()=>{
-      //     callback(firstdata)
-      //   }, 3000)
-
-        const res = yield call(api.forecast.cashFlowDetails, payload);
-        if(res && res.code == 0){
-          callback(res.data)                        
-        }else{
-          message.error(res.msg ||'查询现金流明细失败!')
-        }
-      },
-          
-    //下拉查询
-    *findSelect({ payload ,callback }, { call, put }) {
-
-        const response = yield call(api.getDictionary, payload);
-         console.log(response)
-        if (response) {
-          yield put({
-            type: 'save',
-            payload: {
-              selectData: response,
-            },
-          });
-
-        } else {
-          message.error('查询失败');
-        }
-      },
-     },
-
-    reducers: {
-        save(state, {payload}) {
-          return {...state, ...payload};
-        },
-      },
+export default{
+  // 全局的一些接口
+  ...global,
+  bondBaseInfo,
+  limitAlarmquery,
+  definition,
+  counterpartyInformation,
+  personnelManagement,
+  creditSetting,
+  poolQuery,
+  profitAndLoss,
+  monitoring,
+  basicEvent,
+  forecast,
+  backtracke
 };
+
+let config = {
+  name: '投资组合管理系统',
+  prefix: 'maat',
+  footerText: 'HTSC 版权所有 © 2018 由 信息技术部 支持',
+  logoText: '投资组合管理系统',
+  API_ROOT: '/api', // mock or build(production)
+  // FAUrl: 'https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css',
+  mock_user: 'HT_SUPER', // 'demo12' HT_SUPER
+  enableUserOpLog: false, // 是否启用用户行为跟踪
+  enableUserOpDebug: false, // 启用用户行为跟踪debug模式(用于未启用情况下console.log调试)
+  userOpLogServer: 'https://crm.htsc.com.cn:3443/h5/', // 用户行为分析后台地址
+  userOpLogBlacklist: [ // 用户行为跟踪黑名单(该配置中的用户不跟踪)
+    'HT_SUPER',
+  ],
+  urlPrefix: '',   // URL前缀
+  timeout: 1000 * 60 * 10,   // 接口请求，10分钟超时
+  interfaces:{
+    type1: 'api/v1/',
+    type2: 'api/v3/',
+    type3: 'thfx/',
+    type4: 'tzptapi/v1/',
+    type5: 'gateway/',
+  }
+}
+
+Object.assign(config, global.GlobalConfig)
+
+export default config
+
+
+
+
+
+/**
+* @file utils/apiCreator 支持get、post、upload三种API
+* @author zhangxinyue
+*/
+
+import request from './apiRequest';
+import config from './config'
+
+export default function createApi() {
+
+	// 自动补上URL前缀
+	const padPrefix = (url) => {
+		return config.urlPrefix + url;
+    };
+    
+    // 将查询条件转换成字符串拼接的形式
+    const queryToString = query => {
+        const encode = encodeURIComponent;   // 把字符串作为 URI 组件进行编码。
+        const str = Object.keys(query).map(key => {
+            if (encode(query[key]) !== '') {
+                return (`${encode(key)}=${encode(query[key])}`)
+            } else {
+                return ``
+            }
+        },
+        ).join('&');
+        return str;
+    }
+
+	return {
+		/**
+		 * @param {string} url API url
+		 * @param {Object} query 请求参数
+		 */
+		get(url, query) {
+			const finalUrl = padPrefix(url);           // 添加前缀后的URL
+			const queryString = queryToString(query);  // 将查询条件从对象形式转换为字符串形式
+			let timestamp = (new Date()).getTime();    // 时间戳，避免接口数据缓存
+
+			let finalGetUrl = queryString? `${finalUrl}?${queryString}&_=${timestamp}`: `${finalUrl}?_=${timestamp}`;
+			return request(
+				finalGetUrl,
+				{
+					method: 'GET',
+					headers: {
+                        hToken:localStorage.getItem('antd-pro-token'),
+                        Authorization:localStorage.getItem('access_token'),
+                        Accept: '*/*',  //请求头用来告知（服务器）客户端可以处理的内容类型，这种内容类型用MIME类型来表示。
+					},
+				},
+			);
+        },
+
+        /**
+		 * @param {string} url API url
+		 * @param {Object} query 请求参数
+		 */
+		post(url, query) {
+			const finalUrl = padPrefix(url);          // 添加前缀后的URL
+			return request(
+				finalUrl,
+				{
+					method: 'POST',
+					headers: {
+						hToken:localStorage.getItem('antd-pro-token'),
+                        Authorization:localStorage.getItem('access_token'),
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json;charset=UTF-8', // body中的传参需为JSON格式的字符串
+					},
+					body: JSON.stringify(query),
+				},
+			);
+        },
+        
+         /**
+		 * @param {string} url API url
+		 * @param {Object} query 请求参数
+		 */
+        delete(url, query) {
+			const finalUrl = padPrefix(url);         // 添加前缀后的URL
+			return request(
+				finalUrl,
+				{
+					method: 'DELETE',
+					headers: {
+						hToken:localStorage.getItem('antd-pro-token'),
+                        Authorization:localStorage.getItem('access_token'),
+                        Accept: '*/*', //请求头用来告知（服务器）客户端可以处理的内容类型，这种内容类型用MIME类型来表示。
+                        'Content-Type': 'application/json', // body中的传参需为JSON格式的字符串
+					},
+					body: JSON.stringify(query),
+				},
+			);
+        },
+        
+         /**
+		 * @param {string} url API url
+		 * @param {Object} query 请求参数
+         * @file {FormData} file 文件流
+		 */
+		uploadFile(url,query,file) {
+			const finalUrl = padPrefix(url);                        // 添加前缀后的URL
+			const queryString = queryToString(query);               // 将查询条件从对象形式转换为字符串形式
+			return request(
+				`${finalUrl}${!queryString?"":"?"+queryString}`,
+				{
+					method: 'POST',
+					headers: {
+                        hToken:localStorage.getItem('antd-pro-token'),
+                        Authorization:localStorage.getItem('access_token'),
+                        Accept: 'application/json',
+					},
+					body: file,
+				},
+			);
+        },
+	};
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @file utils/apiRequest
+ * @author zhangxinyue
+ */
+
+import 'whatwg-fetch';
+import { message } from 'antd';
+import config from './config';
+
+// 处理接口返回的状态码
+function checkStatus(response) {
+	// 请求正常返回
+	if (response.status >= 200 && response.status < 300) {
+		return response;
+    }
+    
+	// 无权限，直接返回登录页面，无response
+	if (response.status === 403) {
+        return;
+    }
+    
+	// 服务器端异常
+	if (response.status === 500 || response.status === 502) {
+		throw new Error("服务器异常！");
+	}
+
+    // 处理其他无法预知的错误
+	const error = new Error(response.statusText);
+	error.response = response;
+	throw error;
+}
+
+// 将结果转换成JSON格式，传出
+function parseJSON(response) {
+	if(response === undefined) return;
+
+	return response.clone().json().then(
+		(res) => {
+			return res;
+		},
+	).catch((e)=>{
+		return response.clone().text();
+	});
+}
+
+export default function request(url, options) {
+	// 请求超时时间设置的是10分钟
+	return Promise.race([
+		fetch(url, { 
+            credentials: 'include',   // 为了让浏览器发送包含凭据的请求（即使是跨域源）
+            ...options 
+        })
+		.then(checkStatus)
+        .then(parseJSON)
+        .catch(e => {
+
+        }),
+		new Promise(
+			(rosolve, reject) => {// eslint-disable-line
+				setTimeout(
+					() => reject('请求超时'),
+					config.timeout,
+				);
+			},
+		),
+	]);
+}
+
+
+
