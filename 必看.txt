@@ -1,2 +1,2 @@
-const models = require('./newModels').default;
-models.forEach(item => app.model(item.default));
+const models = require.context('.',true,/.js$/);
+export default models.keys().filter(item=>item !== './index.js').map(item=>models(item))
