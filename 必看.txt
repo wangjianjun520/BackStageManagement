@@ -1,474 +1,197 @@
-/**
- * @description 现金流预测
- * @author wangjianjun
- */
+import {ProductGroupTreeC, ProductListC, ProductGroupSepC,SecuritiesCodeC,codeType} from './business';
+import AdvancedSearch from './AdvancedSearch';
+import { DATA_ENTRY, FormItemLayout,ComplexDateC,RangeDateC, SelectC } from './form';
+import { PrimaryC, PrimaryGhostC } from './button';
+import ModalC from './modal';
+import { FirstHeaderC, SecondHeaderC,QuickQueryC,NoQueryC,NoDataC } from './other';
+import { XYAxisChartsC, XYHorizontalChartsC } from './echarts';
+import { TableC } from './table';
 
-import React, { PropTypes, PureComponent,Fragment } from 'react';
-import PageHeaderLayout from '../../../layouts/PageHeaderLayout';
-import { PrimaryC,DATA_ENTRY, AdvancedSearch ,FirstHeaderC,QuickQueryC,XYAxisChartsC,TableC,NoQueryC} from "../../../comps"
-import {fixedNum,fixedNum6} from "../../../utils/utils";
-import {Row, Col, Card, Form, Icon, Input, Button, message, Table, Divider, DatePicker, Select, Modal} from 'antd';
-import {connect} from 'dva';
-import style from './index.less';
-import moment from 'moment';
-// import style2 from '../../../common.less';
-import 'moment/locale/zh-cn';
-import imgURL from './bg.png';
-
-@Form.create()
-@connect(({forecast,loading}) => ({
-    forecast,
-    loading
-  }))
-
-export default  class Forecast extends PureComponent {
-    constructor(props) {
-        super(props);
-        this.state = {
-            noQuery:true,
-
-            search:{},       //查询条件存储
-
-            columns:undefined,      //频率的统计值表格数据
-            dataSource:undefined,
-
-            columnsCash:undefined,   //现金流表格数据
-            dataSourceCash:undefined,
-            pageInfoCash:{},
-            currentPage:1,   //当前页
-            numInPage:20,    //每页数量
-            total:0,
-            
-            xAxis:undefined,   //bar图表数据
-            series:undefined,
-
-            disabled :[], //设置 月 季 年禁止
-            frequency:'month',//设置 月 季 年选择项
-
-            checkEventType:'0',
-            selInit1:[
-                {value: '0', title: '全部',
-                    children:[
-                        {value:'DQ',title:'付息'},
-                        {value: 'FX', title:'到期'},
-                       {value: 'HB', title:'还本'}
-                    ]},               
-              ],
-            selInit2:[
-                {value: '1', title: '行权'},
-                {value: '2', title: '到期'},
-                {value: '3', title: '推荐'}
-            ],
-        }             
-    }
-
-
-    componentDidMount() {
-        const {dispatch} = this.props; 
-        dispatch({
-            type: 'forecast/findSelect',
-            payload: ['CASHFLOW_EVENTTYPE','CASHFLOW_WEIGHTSET'],                              
-        });
-    }
-
-    //拿图表数据
-    getAllDate(value,type) {
-        const {dispatch} = this.props;        
-        //如果是全部，需要转换
-        if (value && value.eventType && value.eventType == '0') {
-            value.eventType= ['DQ','FX','HB']
-        }
-        //时间需要转换
-        if (value && value.beginDate && value.endDate ) {
-            value.beginDate= moment(value.beginDate).format("YYYYMMDD")
-            value.endDate= moment(value.endDate).format("YYYYMMDD")
-        }
-    
-        //设置undefined,出现loading效果
-        this.setState({
-            xAxis:undefined,
-            series:undefined,
-            columns:undefined,      
-            dataSource:undefined,
-        })
-        // console.log(value)
-        dispatch({
-            type: 'forecast/netCash',
-            payload: {
-            ...value,
-            },
-            callback:(data)=>{
-                let newSeries = []
-                data.series[0].data.map(item=>{
-                    newSeries.push(Number(item).toFixed(4)) 
-
-                })
-
-                let series = [
-                                {
-                                name:'净现金流',
-                                data:newSeries
-                                }]
-                // console.log(newSeries)
-            this.setState({
-                xAxis:data.xAxis,
-                series:series,
-            })
-          }
-        });
-
-        dispatch({
-            type: 'forecast/frequencyCount',
-            payload: {
-            ...value,
-            },
-            callback:(data)=>{
-            this.setState({
-                columns:data.columns,
-                dataSource:data.dataSource,
-            })
-          }
-        });
-        
-        if(type !='frequencyChange'){
-            this.setState({
-                columnsCash:undefined,   
-                dataSourceCash:undefined,
-            })
-            dispatch({
-                type: 'forecast/cashFlowDetails',
-                payload: {
-                ...value,
-                },
-                callback:(data)=>{
-                this.setState({
-                    columnsCash:data.columns,
-                    dataSourceCash:data.dataSource,
-                    total:data.pageInfo.total,
-                    // currentPage:data.pageInfo.currentPage,
-                    // numInPage:data.pageInfo.numInPage
-
-                })
-                }
-            });
-        }
-    }
-
-
-
-    //点击查询按钮刷新数据
-    getSearchData = (e) => {
-        const {dispatch} = this.props;
-        const { numInPage,frequency} = this.state;
-
-        //不就行操作如果查询条件不完整,提示用户，并且不就行任何操作
-        if (!(e.eventType && e.beginDate && e.endDate && e.portfolioId && e.weightSetting)) {
-            message.warning("请设置完整的查询条件！")
-            return;
-        }
-
-        //查询的时候控制 月季年 按钮disable
-
-        //加一个季度
-       let oneQuarter = moment(e.beginDate).add(3,'month').subtract(1, 'day').format("YYYYMMDD")
-       //加一年
-       let oneYear = moment(e.beginDate).add(1,'year').subtract(1, 'day').format("YYYYMMDD")
-
-       //最后一天
-       let lastday = moment(e.endDate).format("YYYYMMDD")
-
-       let quar1 = lastday-oneQuarter<0?true:false
-       let quar2 = lastday-oneYear<0?true:false
-
-       if (quar1) {
-           console.log('小于一个季度')
-           this.setState({
-                disabled:['quarter','year']
-          }) 
-       }else if(quar2){
-            console.log('大于等于一个季度，小于一年')
-            this.setState({
-                disabled:['year']
-            }) 
-       }else{
-           console.log('大于等于一年')
-           this.setState({
-                disabled:[]
-            }) 
-       }
-
-
-        this.setState({
-            currentPage:1,
-            search:e,
-            frequency:'month', //点击查询默认“月”
-            noQuery:false   //点击查询后去掉noQuery图片，到正常状态
-        })
-        const value = {
-            numInPage:numInPage,
-            currentPage:1,
-            frequency:'month',
-            ...e 
-        }
-
-        this.getAllDate(value)
-
-   }
-
-    //点击重置按钮,清空搜索条件
-    onClear = (e) => {
-      this.setState({
-        search:{},
-        // disabled:[]
-      })      
-    }
-
-
-    //显示频率切换
-    frequencyChange = (e)=>{ 
-        const { numInPage,frequency,search} = this.state;
-        //不就行操作如果查询条件不完整,提示用户，并且不就行任何操作
-        if (!(search.eventType && search.beginDate && search.endDate && search.portfolioId && search.weightSetting)) {
-            message.warning("请设置完整的查询条件！")
-            return;
-        }
-        this.setState({
-            frequency:e, 
-            currentPage:1   
-        },()=>{
-            const value = {
-                numInPage:numInPage,
-                currentPage:1,
-                frequency:this.state.frequency,
-                ...search
-            }
-            this.getAllDate(value,'frequencyChange') 
-                         
-        })         
-      }
-
-      
-     //表格分页或者条目改变 (暂时前台分页)
-    // onTableChange = (currentPage, numInPage)=>{ 
-    //   const {dispatch} = this.props;
-    //   const {search} = this.state;
-    //   //不就行操作如果查询条件不完整,提示用户，并且不就行任何操作
-    //   if (!(search.eventType && search.beginDate && search.endDate && search.portfolioId && search.weightSetting)) {
-    //       message.warning("请设置完整的查询条件！")
-    //       return;
-    //   }
-    //   this.setState({
-    //     currentPage:currentPage,
-    //     numInPage:numInPage,
-    //     columnsCash:undefined,   
-    //     dataSourceCash:undefined,  
-    //   },()=>{
-    //       const value = {
-    //           numInPage:numInPage,
-    //           currentPage:currentPage,
-    //           frequency:this.state.frequency,
-    //           ...search
-    //       }
-    //               //时间需要转换
-    //      if (value && value.beginDate && value.endDate ) {
-    //         value.beginDate= moment(value.beginDate).format("YYYYMMDD")
-    //         value.endDate= moment(value.endDate).format("YYYYMMDD")
-    //       }
-    //       console.log(value)
-    //       dispatch({
-    //         type: 'forecast/cashFlowDetails',
-    //         payload: {
-    //         ...value,
-    //         },
-    //         callback:(data)=>{
-    //         this.setState({
-    //             columnsCash:data.columns,
-    //             dataSourceCash:data.dataSource,
-    //             total:data.pageInfo.total,
-    //             currentPage:data.pageInfo.currentPage,
-    //             numInPage:data.pageInfo.numInPage
-    //         })
-    //       }
-    //     });            
-    //   })     
-    // }
-
-    render() {
-        const  {forecast:{selectData}}= this.props
-        const  { columns , columnsCash} = this.state;
-        //组装字典数据
-        let selInit1 = []
-        let selInit2 = []
-        if (selectData && selectData.CASHFLOW_EVENTTYPE && selectData.CASHFLOW_WEIGHTSET) {
-            selectData.CASHFLOW_WEIGHTSET.map(item =>{
-               let data1 = {}
-               data1.value = item.code
-               data1.title = item.value
-               selInit2.push(data1)
-            })
-            selectData.CASHFLOW_EVENTTYPE.map(item =>{
-                let data2 = {}
-                data2.value = item.code
-                data2.title = item.value
-                selInit1.push(data2)
-             })
-        }
-
-        let selInit = [
-                {value: '0', title: '全部',
-                    children:selInit1},               
-              ]
-        
-        //组装columns
-        // console.log(columns , columnsCash)
-        if (columns) {
-            columns.map((item,key)=>{
-                if(item.key =='inflowAmt' || item.key =='outflowAmt' ){
-                    item.type = 'money'
-                    item.toFixed = '4'
-                    }
-                if(item.key=='netCashFlowAmt'){
-                    item.type = 'money'
-                    item.render=(text,record)=>{
-                    return <strong>{fixedNum6(text,4)}</strong>
-                    
-                    }
-                }      
-            })
-         }
-
-         if (columnsCash) {
-            columnsCash.map((item,key)=>{
-                if(item.key =='inflowAmt' || item.key =='outflowAmt' ){
-                    item.type = 'money'
-                    }     
-            })
-         }
-
-
-    
-        const searchProps ={
-            dataSource:[
-            {
-                dataIndex: 'portfolioId',
-                title:'组合名称',
-                type: DATA_ENTRY.PRODUCTGROUPTREE,
-                isMultiple: true,
-            },
-            {
-                dataIndex: ['beginDate','endDate'],
-                title: '日期区间',
-                type: DATA_ENTRY.RANGEDATE,
-                initialValue:[moment().add(0,'day'),moment().add(1,'year').subtract(1, 'day')],
-                hasDataBD: moment().add(0,'day'),
-                disableFuture:false,
-            },
-            {
-                dataIndex: 'eventType',
-                title: '事件类型',
-                type: DATA_ENTRY.TREESELECT,
-                isMultiple: true,
-                dataSource: selInit,
-                initialValue:this.state.checkEventType,
-                treeCheckable:true,           
-            },
-            {
-              dataIndex: 'weightSetting',
-              title: '含权设置',
-              type: DATA_ENTRY.SELECT,
-              dataSource: selInit2,
-           },
-              
-          ],
-            onQuery:(e )=> this.getSearchData(e),
-            onClear:(e )=> this.onClear(e)
-          
-          }   
-       
-        return (
-
-                <div className={style.bondDeviation}>
-                   <Row>
-                      <AdvancedSearch
-                        {...searchProps}
-                        />
-                   </Row>
-
-                   {this.state.noQuery == true?<div style={{marginTop:'13px'}}>
-                    <NoQueryC /></div>:<div>
-                    
-                   <div style={{marginTop:'13px'}}>
-                      <FirstHeaderC  title='区间统计' /> 
-                   </div>
-
-                    <Row>
-                        <Col span={24}>
-                        <div className={style.right}>  
-                            <QuickQueryC
-                                    dataSource={[{value:'month',title:'月'},{value:'quarter',title:'季'},{value:'year',title:'年'}]}
-                                    initialValue={this.state.frequency}
-                                    disabled={this.state.disabled}
-                                    onChange = { e => this.frequencyChange(e)}
-                                />
-                            
-                            </div>
-                        </Col>
-                    </Row> 
-
-                    <Row style={{marginTop:'13px'}} gutter={16}>
-                        <Col span={12}  >
-                           <div className={style.bgcolor} style={{paddingTop:'10px'}} >
-                            <XYAxisChartsC 
-                                    series={this.state.series} 
-                                    xAxis={this.state.xAxis} 
-                                    // yAxisFormat = {[value=>value.toFixed(2)]}
-                                    height={400}
-                                    gridLeft={80}
-                                    dataZoom = {true}
-                                    type='bar'
-                                    showBorder = {false}
-                                    width={'100%'}
-                                    yAxisUnit={['单位(万元)']}
-                                    // seriesLabelDataFormat={[params=>`${(params.data * 1).toFixed(2)}%`]}
-                                    /> 
-                           </div>
-
-                        </Col>
-
-
-                        <Col span={12}   >
-                          <div className={style.bgcolor} style={{height:'420px',position:'relative',padding:'10px'}}  >
-                            <TableC
-                                    columns={columns}
-                                    dataSource={this.state.dataSource}
-                                    hidePage = {true}
-                                /> 
-                            <img src={imgURL}  style={{position:'absolute',top:'310px',right:'10px'}}/>
-                          </div>
-              
-                        </Col>
-                    </Row>                 
-
-                   <div style={{marginTop:'13px'}}>
-                      <FirstHeaderC  title='现金流明细' /> 
-                   </div>
-
-                   <Row>
-                        <Col span={24} >
-                        <TableC
-                            columns={columnsCash}
-                            dataSource={this.state.dataSourceCash}
-                            total={this.state.total}
-                            defaultCurrent={this.state.currentPage}
-                            // onShowSizeChange = {(current, size) => this.onTableChange(current, size)}
-                            // onPageChange = {(page, pageSize) => this.onTableChange(page, pageSize) }
-                        />
-                        </Col>
-                    </Row> 
-
-                    </div>}              
-                </div>               
-                
-        )
-      }
+export {
+    // 查询组件
+    AdvancedSearch,
+    DATA_ENTRY,
+    // 业务组件
+    ProductGroupTreeC,
+    ProductListC,
+    ProductGroupSepC,
+    SecuritiesCodeC,
+    codeType,
+    FormItemLayout,
+    // 按钮
+    PrimaryC,
+    PrimaryGhostC,
+    // 模态框
+    ModalC,
+    // 标题
+    FirstHeaderC,
+    SecondHeaderC,
+    // 快速查询按钮
+    QuickQueryC,
+    // echarts图
+    XYAxisChartsC,
+    XYHorizontalChartsC,
+    // Form
+    ComplexDateC,
+    RangeDateC,
+    SelectC,
+    // 表格
+    TableC,
+    // 未查询
+    NoQueryC,
+    // 无数据
+    NoDataC
 }
+
+
+
+
+
+
+
+import PrimaryC from './primary';
+import PrimaryGhostC from './primaryGhost';
+// import BGroupC from './group'
+
+export { 
+    PrimaryC, 
+    PrimaryGhostC, 
+    // BGroupC
+} 
+
+
+/**
+ * 主要按钮
+ * by zhangxinyue
+ * create 2020-08-24
+ */
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Button, Icon,Tooltip } from 'antd';
+
+class PrimaryC extends React.PureComponent{
+  // props默认值
+  static defaultProps = {
+    loading: false,     // 默认不loading
+    title: '',          // 默认按钮无名称
+    htmlType: 'button', // 默认不设置
+    disabled: false,    // 默认有效状态
+    onClick: ()=>{},    // 默认无点击事件
+    helper: undefined,  // 帮助信息
+    icon: undefined,    // 默认按钮中不加图标
+    style: undefined,   // 样式
+  };
+
+  constructor(props){
+      super(props);
+  }
+
+  render(){
+    const { title, loading, disabled, htmlType, onClick, style, helper, icon} = this.props;
+
+    return (
+        <div style={{...style, display:'inline-block'}}>
+          { helper ? 
+            <Tooltip title={helper}>
+              <Button type="primary" htmlType={htmlType} disabled={disabled} loading={loading} onClick={onClick}>
+                {title}
+                <Icon type="question-circle-o" />
+              </Button>
+            </Tooltip>
+            :
+            <Button type="primary" htmlType={htmlType} disabled={disabled} loading={loading} onClick={onClick}>
+              {title}
+              {icon && <Icon type={icon} />}
+            </Button>
+            }
+        </div>
+    );
+  }
+}
+
+// props类型
+PrimaryC.propsTypes = {
+    loading: PropTypes.bool,     // 标记是否是loading状态
+    title: PropTypes.string,     // 按钮名称
+    htmlType: PropTypes.oneOf(   // 配合form表单的onSubmit事件，可设置值为“submit”
+        ["submit","button","reset"]
+    ),  
+    disabled: PropTypes.bool,    // 标记是否是失效状态
+    onClick: PropTypes.func,     // 按钮点击事件	
+    style: PropTypes.object,     // 样式
+    helper: PropTypes.string,    // 帮助信息
+    icon: PropTypes.string,      // 按钮中加图标(图标名称)
+};
+
+export default PrimaryC;
+
+
+
+
+
+
+
+/**
+ * 辅助按钮
+ * by zhangxinyue
+ * create 2020-08-24
+ */
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Button, Icon,Tooltip } from 'antd';
+
+class PrimaryGhostC extends React.PureComponent{
+  // props默认值
+  static defaultProps = {
+    loading: false,     // 默认不loading
+    title: '',          // 默认按钮无名称
+    htmlType: 'button', // 默认不设置
+    disabled: false,    // 默认有效状态
+    onClick: ()=>{},    // 默认无点击事件
+    helper: undefined,  // 帮助信息
+    icon: undefined,    // 默认按钮中不加图标
+    style: undefined,   // 样式
+  };
+
+  constructor(props){
+      super(props);
+  }
+
+  render(){
+    const { title, loading, disabled, htmlType,onClick,style, helper, icon} = this.props;
+
+    return (
+    <div style={{...style, display:'inline-block'}}>
+        { helper ? 
+          <Tooltip title={helper}>
+            <Button type="primary" ghost htmlType={htmlType} disabled={disabled} loading={loading} onClick={onClick}>
+              {title}
+              <Icon type="question-circle-o" />
+            </Button>
+          </Tooltip>
+          :
+          <Button type="primary" ghost htmlType={htmlType} disabled={disabled} loading={loading} onClick={onClick}>
+            {title}
+            {icon && <Icon type={icon} />}
+          </Button>
+        }
+    </div>
+    );
+  }
+}
+
+// props类型
+PrimaryGhostC.propsTypes = {
+    loading: PropTypes.bool,     // 标记是否是loading状态
+    title: PropTypes.string,     // 按钮名称
+    htmlType: PropTypes.oneOf(   // 配合form表单的onSubmit事件，可设置值为“submit”
+        ["submit","button","reset"]
+    ),  
+    disabled: PropTypes.bool,    // 标记是否是失效状态
+    onClick: PropTypes.func,     // 按钮点击事件	
+    style: PropTypes.object,     // 样式
+    helper: PropTypes.string,    // 帮助信息
+    icon: PropTypes.string,      // 按钮中加图标(图标名称)
+};
+
+export default PrimaryGhostC;
