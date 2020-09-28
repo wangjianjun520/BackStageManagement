@@ -1,400 +1,214 @@
+formItems.js
+
+/**
+ * 查询组件“集散组件”
+ * by zhangxinyue
+ * create 2020.08.19
+ */
 import React from 'react';
-import PropTypes from 'prop-types';
-import { Modal } from 'antd';
+import { DATA_ENTRY, InputC, InputNumberC,SelectC,TreeSelectC,SingleDate,ComplexDateC,RangeDateC} from '../form';
+import { ProductGroupTreeC, ProductListC, ProductGroupSepC,SecuritiesCodeC } from '../business'
 
-class ModalC extends React.Component {
-  // props默认值
-  static defaultProps = {
-    // Modal 完全关闭后的回调	function	无
-    afterClose: () => { },
-    // 取消按钮文字	string|ReactNode
-    cancelText: '取消',
-    // 垂直居中展示 Modal	Boolean
-    centered: true,
-    // 是否显示右上角的关闭按钮 boolean
-    closable: true,
-    // 自定义关闭图标	ReactNode
-    closeIcon: undefined,
-    // 确定按钮 loading	boolean
-    confirmLoading: undefined,
-    // 关闭时销毁 Modal 里的子元素	boolean	
-    destroyOnClose: false,
-    // 底部内容，当不需要默认底部按钮时，可以设为 footer={null}	string|ReactNode	确定取消按钮
-    footer: undefined,
-    // 强制渲染 Modal	boolean	
-    forceRender: false,
-    // 指定 Modal 挂载的 HTML 节点, false 为挂载在当前 dom:	HTMLElement | () => HTMLElement | Selectors | false	
-    getContainer: false,
-    // 是否支持键盘 esc 关闭	boolean	
-    keyboard: true,
-    // 是否展示遮罩	Boolean	
-    mask: true,
-    // 点击蒙层是否允许关闭	boolean	
-    maskClosable: true,
-    // 遮罩样式	object	
-    maskStyle: {},
-    // 确认按钮文字	string|ReactNode	
-    okText: '确定',
-    // 确认按钮类型	string	
-    okType: 'primary',
-    // ok 按钮 props	ButtonProps
-    okButtonProps: undefined,
-    // cancel 按钮 props	ButtonProps	
-    cancelButtonProps: undefined,
-    // 可用于设置浮层的样式，调整浮层位置等	object
-    style: undefined,
-    // 标题	string|ReactNode	
-    title: undefined,
-    // 对话框是否可见	boolean	
-    visible: undefined,
-    // 主体宽度	string|number	
-    width: 800,
-    // 对话框外层容器的类名	string
-    wrapClassName: undefined,
-    // 设置 Modal 的 z-index	Number	
-    zIndex: 1000,
-    // 点击遮罩层或右上角叉或取消按钮的回调	function(e)
-    onCancel: () => { },
-    // 点击确定回调	function(e)
-    onOk: () => { },
-    // 主体高度	string|number	
-    height: false,
+const FormItems = (props) => {
+  switch (props.type) {
+    case DATA_ENTRY.INPUT: return <InputC {...props} />;
+    case DATA_ENTRY.INPUTNUMBER: return <InputNumberC {...props}/>;
+    case DATA_ENTRY.SELECT: return <SelectC {...props}/>;
+    case DATA_ENTRY.TREESELECT: return <TreeSelectC {...props}/>;
+    case DATA_ENTRY.SINGLEDATE: return <SingleDate {...props}/>;
+    case DATA_ENTRY.COMPLEXDATE: return <ComplexDateC {...props}/>;
+    case DATA_ENTRY.RANGEDATE: return <RangeDateC {...props}/>;
+    case DATA_ENTRY.PRODUCTGROUPTREE: return <ProductGroupTreeC {...props} />;
+    case DATA_ENTRY.PRODUCTLIST: return <ProductListC {...props} />;
+    case DATA_ENTRY.PRODUCTGROUPSEP: return <ProductGroupSepC {...props} />;
+    case DATA_ENTRY.SECURITIESCODE: return <SecuritiesCodeC {...props} />;
+    default: return <InputC {...props} />;
   }
-
-
-  render() {
-    const {
-      width,
-      height,
-      children,
-      ...otherProps
-    } = this.props
-    const maxHeight = document.body.offsetHeight - 120
-    let bodyHeight
-    let contentHeight
-    
-    if(height){
-      bodyHeight = maxHeight > height ? height : maxHeight
-      contentHeight = bodyHeight+50
-    }
-
-    const props = {
-      ...otherProps,
-      width: width + 40,
-      bodyStyle: {
-        height:contentHeight,
-        maxHeight,
-      },
-      style: {}
-    }
-    return (
-      <Modal {...props} className={this.props.className}>
-        { children }
-      </Modal>
-    );
-  }
-}
-
-// props类型
-ModalC.propsTypes = {
-  // Modal 完全关闭后的回调	function	无
-  afterClose: PropTypes.func,
-  // 取消按钮文字	string|ReactNode
-  cancelText: PropTypes.string,
-  // 垂直居中展示 Modal	Boolean
-  centered: PropTypes.bool,
-  // 是否显示右上角的关闭按钮 boolean
-  closable: PropTypes.bool,
-  // 自定义关闭图标	ReactNode
-  closeIcon: PropTypes.object,
-  // 确定按钮 loading	boolean
-  confirmLoading: PropTypes.bool,
-  // 关闭时销毁 Modal 里的子元素	boolean	
-  destroyOnClose: PropTypes.bool,
-  // 底部内容，当不需要默认底部按钮时，可以设为 footer={null}	string|ReactNode	确定取消按钮
-  footer: PropTypes.string,
-  // 强制渲染 Modal	boolean	
-  forceRender: PropTypes.bool,
-  // 指定 Modal 挂载的 HTML 节点, false 为挂载在当前 dom:	HTMLElement | () => HTMLElement | Selectors | false	
-  getContainer: PropTypes.bool,
-  // 是否支持键盘 esc 关闭	boolean	
-  keyboard: PropTypes.bool,
-  // 是否展示遮罩	Boolean	
-  mask: PropTypes.bool,
-  // 点击蒙层是否允许关闭	boolean	
-  maskClosable: PropTypes.bool,
-  // 遮罩样式	object	
-  maskStyle: PropTypes.object,
-  // 确认按钮文字	string|ReactNode	
-  okText: PropTypes.string,
-  // 确认按钮类型	string	
-  okType: PropTypes.string,
-  // ok 按钮 props	ButtonProps
-  okButtonProps: PropTypes.object,
-  // cancel 按钮 props	ButtonProps	
-  cancelButtonProps: PropTypes.object,
-  // 可用于设置浮层的样式，调整浮层位置等	object
-  style: PropTypes.object,
-  // 标题	string|ReactNode	
-  title: PropTypes.string,
-  // 对话框是否可见	boolean	
-  visible: PropTypes.bool,
-  // 内部宽度	string|number	
-  width: PropTypes.number,
-  // 对话框外层容器的类名	string
-  wrapClassName: PropTypes.string,
-  // 设置 Modal 的 z-index	Number	
-  zIndex: PropTypes.number,
-  // 点击遮罩层或右上角叉或取消按钮的回调	function(e)
-  onCancel: PropTypes.func,
-  // 点击确定回调	function(e)
-  onOk: PropTypes.func,
-  // 内部高度	string|number	
-  height: PropTypes.number,
-  className: PropTypes.object,
 };
 
-export default ModalC;
+export default FormItems;
 
 
-
-
-
-import TableC from './table';
-
-export {
-    TableC,
-}
-
-
-
-import React from 'react';
+index.js
+/**
+ * 查询组件
+ * by zhangxinyue
+ * create 2020.08.19
+ */
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Table, Popconfirm, Icon, Spin } from 'antd';
-import PrimaryGhostC from '../button/primaryGhost';
-import accounting from 'accounting';
+import { Row, Col, Form} from 'antd';
+import _ from 'lodash';
+import { DATA_ENTRY } from '../form';
+import { PrimaryC, PrimaryGhostC} from '../button';
+import FormItems from './formItems';
+import style from './style.less';
 
-class TableC extends React.Component {
-  // props默认值
+/**
+ * 每一项最小宽度为312px
+ * 一行最多4项
+ * 当组件宽度小于4*312=1248px时，自动换行
+ * 当组件宽度大于1248px时，展示4项，自动扩充
+ */
+
+class AdvancedSearch extends Component {
+    // props默认值
   static defaultProps = {
-    columns: undefined,
-    dataSource: undefined,
-    defaultCurrent: 1,     // 默认第一页
-    total: 0,              // 默认共0条数据
-    pageSize: 20,          // 默认一页20条
-    pageSizeOptions: ['10', '20', '50', '100'],// 默认可选的一页条数
-    onShowSizeChange: (current, size) => {},   // pageSize变化时的回调
-    onPageChange: (page, pageSize) => {},      // 页码改变的回调，参数是改变后的页码及每页条数
-    scroll: undefined,                         // 横向或纵向滚动条
-    hidePage: false,                           // 默认不隐藏页码
-    width: '100%',                             // 默认占父容器100%
-    onChange:()=>{},                           // 表格所有的操作变化时 回调
-    rowKey:'' ,                                // 设置唯一的key
+    allowClear: true,           // 默认显示“重置”按钮
+    allowMore: false,           // 默认不支持“展开/收起”按钮
+    dataSource: [],             // 查询条件数据源
+    moreData: [],               // 当allowMore为true时，展开的查询条件
+    onQuery: () => {},          // 点击“查询”时，向外抛出查询数据
+    onClear: () => {},          // 点击“清除”时，抛出事件
+    resultIncludeNull: false,   // 默认在onQuery事件中将未设置条件移除
+    queryDisabled:false,        // 默认查询按钮不是disable状态
+    buttonText:'查询',          // 默认按钮文本是“查询”
   }
 
-  render() {
-    let {columns, dataSource,total,defaultCurrent,pageSize,pageSizeOptions,onShowSizeChange,onPageChange,scroll, hidePage,width,onChange,rowKey} = this.props;
-    columns && columns.forEach((element,index) => {
-      // 为每一列添加dataIndex
-      element.dataIndex = element.key;
-      // 设置最后一列居右
-      if(index == columns.length - 1){
-        element.align = 'right';
-      }
-      // 数字居右
-      if(element.type === 'number'){
-        element.align = 'right';
-      }
-      // 金钱（千分位格式，默认保留2位小数，支持通过toFixed修改保留位数）
-      if(element.type === 'money'){
-        element.align = 'right';
-        if(element.render === undefined){
-          element.render = (text, record, index) => {
-            if(text === null || text === undefined || text === ''){
-              return '--';
-            }else{
-              return accounting.formatNumber(Number(text), element.toFixed ? element.toFixed : 2);
-            }            
-          }
-        }
-      }
-      // 比率（%格式，默认保留2位小数，支持通过toFixed修改保留位数）
-      if(element.type === 'rate'){
-        element.align = 'right';
-        if(element.render === undefined){
-          element.render = (text, record, index) => {
-            if(text === null || text === undefined || text === ''){
-              return '--';
-            }else{
-              // NaN: Not a Number
-              // isNaN()的缺点就在于 null、空格以及空串会被按照0来处理
-              if(isNaN(text)){
-                return text;
-              }else{
-                return (Number(text) * 100).toFixed(element.toFixed ? element.toFixed : 2) + '%';
-              }
-            }
-          }
-        }
-      }
-      // 处理所有没有值的情况
-      if(element.render === undefined){
-        element.render = (text, record, index) => text ? text : '--';
-      }
-      // 操作列
-      if(element.type === 'operate'){
-        const operates = element.operates;
-        element.render = (text, record, index) => {
-          return (
-            <div>
-              {
-                operates.map((item,index) => {
-                  const rules = item.rules;
-                  let hide = true;
-                  let disabled = true;
-                  // 默认同字段，条件之间是或的关系，不同字段，条件之间是与关系
-                  // 处理隐藏逻辑
-                  if(rules && rules.hide){
-                    rules.hide.forEach(eachRule => {
-                      // 处理不同字段之间的与关系
-                      let value = record[eachRule.key];
-                      let compare = eachRule.value;
-                      let ralation = eachRule.ralation;
-                      let tag = false;
-                      for(let i = 0; i < compare.length; i++){
-                        switch(ralation[i]){
-                          case '=':
-                            if(value === compare[i]) tag = true;
-                            break;
-                          case '!=':
-                            if(value !== compare[i]) tag = true;
-                            break
-                        }
-                      }
-                      if(tag === false) hide = false;
-                    })
-                  }else{
-                    hide = false;
-                  }
-                  // 处理禁用逻辑
-                  if(rules && rules.disabled){
-                    rules.disabled.forEach(eachRule => {
-                      // 处理不同字段之间的与关系
-                      let value = record[eachRule.key];
-                      let compare = eachRule.value;
-                      let ralation = eachRule.ralation;
-                      let tag = false;
-                      for(let i = 0; i < compare.length; i++){
-                        switch(ralation[i]){
-                          case '=':
-                            if(value === compare[i]) tag = true;
-                            break;
-                          case '!=':
-                            if(value !== compare[i]) tag = true;
-                            break
-                        }
-                      }
-                      if(tag === false) disabled = false;
-                    })
-                  }else{
-                    disabled = false;
-                  }
+  // 生成查询条件
+  getFields() {
+    const { dataSource } = this.props;
 
-                  if(item.title === '删除'){
-                    return (
-                      !hide && <Popconfirm 
-                        key={index} 
-                        title="确定删除？" 
-                        icon={<Icon type="question-circle-o"/>} 
-                        onConfirm={()=> item.onClick(record, index)}
-                        disabled={disabled}
-                      > 
-                        <a href="#" disabled={disabled}>删除</a> 
-                      </Popconfirm>
-                    )
-                  }else{
-                    return (
-                      !hide && <a 
-                        key={index} 
-                        onClick={()=> item.onClick(record, index)}
-                        disabled={disabled}
-                      >
-                        {item.title}
-                      </a>
-                    )
-                  }
-                })
-              }
-            </div>
-          )
-        }
+    const children = [];
+    let totalItems = dataSource.length;   // 元素总数量
+    // 遍历数组，将数据转换成可展示的html
+    dataSource.forEach((item, index) => {
+      switch (item.type){
+        case DATA_ENTRY.COMPLEXDATE:   // 当组件类型为COMPLEXDATE，需要特殊处理占位
+          children.push(
+            <Col span={12} key={index}>
+              {/* 该处 this.props.form 不是从父组件传入，而是通过Form.create()传入 */}
+              <FormItems {...item} form={this.props.form}/>
+            </Col>,
+          );
+          totalItems += 1;  // 复杂日期期间下拉占两位 
+          break;
+        default: 
+          // 查询条件
+          children.push(
+            <Col span={6} key={index}>
+              <FormItems {...item} form={this.props.form} />
+            </Col>,
+          );
       }
     });
 
-    let initStatus = columns && dataSource; // 标记是否达到初始化状态(true:可以初始化表格，false：还未获取到数据)
+    // 按钮
+    if(totalItems % 4 === 0){
+      children.push(
+        <Col span={24} key={children.length}>
+          <div style={{ width: '97.9%', display:'flex',flexDirection:'row-reverse' }}>
+            {this.defineButton()}
+          </div>
+        </Col>,
+      );
+    }else{
+      children.push(
+        <Col span={6} key={children.length}>
+          <div style={{ width: 22/24*100 + '%', display:'flex',flexDirection:'row-reverse'}}>
+            {this.defineButton()}
+          </div>
+        </Col>,
+      );
+    }
     
-    return (
-      <div style={{width:width, textAlign:'center' }}>
-        <Spin spinning={!initStatus} tip="加载中...">
-          {
-            initStatus && <Table 
-              columns={columns}
-              dataSource={dataSource}
-              scroll={scroll}
-              onChange={onChange}
-              rowKey={rowKey}
-              pagination={hidePage ? false : {
-                total: total,                                 // 数据总数
-                showTotal: totalNum => `共计 ${totalNum} 条`, // 用于显示数据总量和当前数据顺序
-                defaultCurrent,                               // 默认当前页数
-                pageSize,                                     // 每页条数
-                pageSizeOptions: pageSizeOptions,             // 指定每页可以显示多少条
-                showSizeChanger: true,                        // 是否可以改变 pageSize
-                onShowSizeChange: onShowSizeChange,           // pageSize 变化的回调
-                hideOnSinglePage: false,                      // 只有一页时，不隐藏分页
-                onChange: onPageChange,
-                showQuickJumper:{
-                  goButton: (
-                    <PrimaryGhostC 
-                      title='确定'
-                      style={{marginLeft:'10px'}}
-                    /> 
-                  )
-                },
-              }}
-          />
+    return children;
+  }
+
+  // 定义操作按钮
+  defineButton = () => {
+    const { allowClear, queryDisabled,buttonText } = this.props;
+    return (<Form.Item>
+      <PrimaryC 
+        htmlType="submit" 
+        disabled={queryDisabled} 
+        title={buttonText}
+      />
+      {
+        allowClear &&
+        <PrimaryGhostC 
+            title="重置"
+            style={{ marginLeft: '16px', borderRadius: '2px' }}
+            onClick={this.handleReset}
+        />
+      }
+    </Form.Item>);
+  }
+
+  // “查询”按钮，抛出查询条件
+  handleSearch = (e) => {
+    e.preventDefault();
+    this.props.form.validateFields((err, values) => {
+      if(!this.props.resultIncludeNull){
+        // 删除用户未设置的条件
+        const removeKeys = [];          // 保存要删除的条件key值
+        Object.getOwnPropertyNames(values).forEach((key) => {
+          const value = values[key];
+          if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length == 0)) {
+            removeKeys.push(key);   // 找出未设置的条件
           }
-        </Spin>
-      </div>
+        });
+        // 删除空条件
+        for (let i = 0; i < removeKeys.length; i++) {
+          delete values[removeKeys[i]];
+        }
+      }
+            
+      this.props.onQuery(values);       // 抛出查询条件
+    });
+  }
+
+  // “重置”按钮
+  handleReset = () => {
+    this.props.form.resetFields();        // 重置条件
+
+    // 遍历数组，将数据转换成可展示的html
+    this.props.dataSource.forEach((item, index) => {
+      switch (item.type){
+        case DATA_ENTRY.RANGEDATE:   // 当组件类型为RANGEDATE，重置需特殊处理
+          item.self && item.self.reset();
+          break;
+        case DATA_ENTRY.COMPLEXDATE:
+          item.self && item.self.reset();
+      }
+    });
+
+    this.props.onClear();                 // 抛出点击“重置”按钮事件
+  }
+
+  render() {
+    return (
+      <Form className={style.query} onSubmit={this.handleSearch}>
+        <Row justify="space-around">{this.getFields()}</Row>
+      </Form>
     );
   }
 }
 
 // props类型
-// columns或dataSource为undefined时，为loading状态，为空数组时，显示“暂无数据”
-TableC.propsTypes = {
-  columns: PropTypes.array,         // 列信息(title和key是必填)（支持设置三类type:1)money 2)number 3)rate 4)operate，其他有关样式上的需求，自行添加render）
-  dataSource: PropTypes.array,      // 数据源
-  defaultCurrent: PropTypes.number, // 当前页码
-  total: 0,                         // 数据总量
-  pageSize: 20,                     // 一页数量量
-  pageSizeOptions: PropTypes.array, // 一页数据量的可选值
-  onShowSizeChange: (current, size) => {},// pageSize变化时的回调
-  onPageChange: (page, pageSize) => {},   // 页码改变的回调，参数是改变后的页码及每页条数
-  scroll: undefined,                      // 横向或纵向滚动条
-  hidePage: false,                        // 默认不隐藏页码
-  width: PropTypes.string,                // 表格宽度
-  onChange:()=>{},                        // 表格所有的操作变化时 回调
-  rowKey:PropTypes.string                 // 设置唯一的key
+AdvancedSearch.propsTypes = {
+  allowClear: PropTypes.bool,          // 设置是否展示“重置”按钮
+  dataSource: PropTypes.array,         // 查询条件数据源
+  onQuery: PropTypes.func,             // 点击“查询”时，向外抛出查询数据
+  onClear: PropTypes.func,             // 点击“重置”时，抛出事件
+  resultIncludeNull: PropTypes.bool,   // 设置onQuery事件抛出的结果是否包含未设置的
+  queryDisabled: PropTypes.bool,       // 设置查询按钮的失效状态
+  buttonText: PropTypes.string,        // 按钮文本
 };
 
-export default TableC;
+
+export default Form.create()(AdvancedSearch);
 
 
 
-
-
-
+style.less
+@import '../../css/colorVar.less';
+.query{
+    background-color: @section_bg;
+    border-radius: 2px;
+    box-shadow: 0 2px 4px 0 @section_shadow;
+    padding-top: 15px;
+}
 
 
 
